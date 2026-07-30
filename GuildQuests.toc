@@ -1,0 +1,56 @@
+## Interface: 11507, 11508, 11509
+## Title: Guild Quests
+## Notes: Serverless guild quest board with peer-to-peer sync
+## Version: 1.0.0
+## Author: GuildQuests
+## SavedVariables: GuildQuestsDB
+## SavedVariablesPerCharacter: GuildQuestsCharDB
+
+embeds.xml
+
+Core\Constants.lua
+Core\Util.lua
+Core\Events.lua
+Core\Init.lua
+
+Locales\Locale.lua
+Locales\enUS.lua
+Locales\ruRU.lua
+
+Database\Schema.lua
+Database\Storage.lua
+Database\Migration.lua
+Database\Projections.lua
+
+Sync\Protocol.lua
+Sync\Codec.lua
+Sync\Transport.lua
+Sync\Heartbeat.lua
+Sync\Replicator.lua
+Sync\SyncEngine.lua
+
+Permissions\GuildRank.lua
+Permissions\Rules.lua
+
+Quests\StateMachine.lua
+Quests\Validator.lua
+Quests\Actions.lua
+Quests\Scheduler.lua
+
+History\Logger.lua
+
+Settings\Tooltips.lua
+Settings\PersonalSettings.lua
+Settings\GuildSettings.lua
+
+Notifications\Queue.lua
+Notifications\Toast.lua
+
+UI\MainFrame.xml
+UI\MainFrame.lua
+UI\QuestList.lua
+UI\QuestDetail.lua
+UI\CreateQuest.lua
+UI\SearchFilter.lua
+UI\SettingsPanel.lua
+UI\Minimap.lua

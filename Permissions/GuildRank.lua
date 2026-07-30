@@ -1,0 +1,84 @@
+local _, ns = ...
+local Util = ns.Util
+
+local GuildRank = {}
+ns.GuildRank = GuildRank
+
+GuildRank.cache = {}
+GuildRank.numRanks = 0
+
+function GuildRank:Init()
+    ns.GQ:RegisterEvent("GUILD_ROSTER_UPDATE", function()
+        GuildRank:OnRosterUpdate()
+    end)
+    C_Timer.After(2, function()
+        GuildRank:Refresh()
+    end)
+end
+
+function GuildRank:Refresh()
+    if C_GuildInfo and C_GuildInfo.GuildRoster then
+        C_GuildInfo.GuildRoster()
+    elseif GuildRoster then
+        GuildRoster()
+    end
+end
+
+function GuildRank:OnRosterUpdate()
+    self:RebuildCache()
+end
+
+function GuildRank:RebuildCache()
+    self.cache = {}
+    self.numRanks = GuildControlGetNumGuildRanks and GuildControlGetNumGuildRanks() or 5
+    local numMembers = GetNumGuildMembers()
+    for i = 1, numMembers do
+        local name, _, rankIndex = GetGuildRosterInfo(i)
+        if name then
+            local short = Util:GetShortPlayerName(name)
+            self.cache[short] = rankIndex
+            self.cache[name] = rankIndex
+        end
+    end
+end
+
+function GuildRank:GetRankIndex(playerName)
+    if not playerName then
+        playerName = Util:GetPlayerName()
+    end
+    if IsGuildLeader("player") and playerName == Util:GetPlayerName() then
+        return 0
+    end
+    local short = Util:GetShortPlayerName(playerName)
+    if self.cache[playerName] ~= nil then
+        return self.cache[playerName]
+    end
+    if self.cache[short] ~= nil then
+        return self.cache[short]
+    end
+    self:Refresh()
+    return self.cache[short]
+end
+
+function GuildRank:GetNumRanks()
+    return self.numRanks > 0 and self.numRanks or 5
+end
+
+function GuildRank:GetRankName(rankIndex)
+    if GuildControlGetRankName then
+        return GuildControlGetRankName(rankIndex + 1) or ("Rank " .. rankIndex)
+    end
+    return "Rank " .. rankIndex
+end
+
+function GuildRank:IsGuildMaster(playerName)
+    if playerName and playerName ~= Util:GetPlayerName() then
+        return self:GetRankIndex(playerName) == 0
+    end
+    return IsGuildLeader("player") == true
+end
+
+function GuildRank:IsOfficer(playerName)
+    local rank = self:GetRankIndex(playerName)
+    return rank ~= nil and rank <= 1
+end

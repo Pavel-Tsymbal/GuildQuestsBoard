@@ -1,0 +1,127 @@
+local _, ns = ...
+local C = ns.Constants
+local Util = ns.Util
+local Events = ns.Events
+
+local GQ = LibStub("AceAddon-3.0"):NewAddon(
+    C.ADDON_NAME,
+    "AceEvent-3.0",
+    "AceComm-3.0",
+    "AceTimer-3.0"
+)
+
+ns.GQ = GQ
+GQ.modules = {}
+
+function GQ:OnInitialize()
+    ns.Locale:Init()
+    ns.DB = ns.Storage
+    ns.DB:Init()
+    ns.PersonalSettings:Init()
+    ns.GuildRank:Init()
+    ns.Permissions = ns.Rules
+    ns.Projections:Init()
+    ns.Replicator:Init()
+    ns.Transport:Init()
+    ns.Heartbeat:Init()
+    ns.SyncEngine:Init()
+    ns.StateMachine:Init()
+    ns.Validator:Init()
+    ns.QuestActions = ns.Actions
+    ns.Actions:Init()
+    ns.Scheduler:Init()
+    ns.History = ns.Logger
+    ns.Logger:Init()
+    ns.GuildSettingsModule = ns.GuildSettings
+    ns.GuildSettings:Init()
+    ns.NotifyQueue = ns.Queue
+    ns.Queue:Init()
+    ns.Toast:Init()
+    ns.UI = ns.MainUI
+    ns.MainUI:Init()
+    ns.QuestList:Init()
+    ns.QuestDetail:Init()
+    ns.CreateQuest:Init()
+    ns.SearchFilter:Init()
+    ns.Minimap:Init()
+
+    SLASH_GUILDQUESTS1 = "/gq"
+    SLASH_GUILDQUESTS2 = "/guildquests"
+    SlashCmdList["GUILDQUESTS"] = function(msg)
+        GQ:SlashCommand(msg)
+    end
+
+    Events:Fire("AddonLoaded")
+end
+
+function GQ:OnEnable()
+    local function bootstrap()
+        if Util:GetGuildKey() then
+            ns.DB:EnsureGuildStore()
+            ns.SyncEngine:OnGuildReady()
+            if not self.bootstrapped then
+                ns.Scheduler:Start()
+                self.bootstrapped = true
+            end
+        end
+    end
+    ns.GuildRank:Refresh()
+    bootstrap()
+    C_Timer.After(3, bootstrap)
+    C_Timer.After(10, bootstrap)
+    Events:Fire("AddonEnabled")
+end
+
+function GQ:OnDisable()
+    ns.Scheduler:Stop()
+    ns.Heartbeat:Stop()
+end
+
+function GQ:RegisterModule(name, mod)
+    self.modules[name] = mod
+    if mod.OnRegister then
+        mod:OnRegister(self)
+    end
+end
+
+function GQ:Print(msg, ...)
+    DEFAULT_CHAT_FRAME:AddMessage(
+        "|cff33aa33GuildQuests:|r " .. string.format(tostring(msg), ...)
+    )
+end
+
+function GQ:SlashCommand(input)
+    input = Util:Trim(input or ""):lower()
+    if input == "" or input == "board" then
+        ns.MainUI:Toggle()
+    elseif input == "create" then
+        ns.CreateQuest:Show()
+    elseif input == "settings" then
+        ns.MainUI:ShowSettings()
+    elseif input == "sync" then
+        ns.SyncEngine:RequestCatchUp(true)
+    elseif input == "debug" then
+        ns.SyncEngine:PrintDebug()
+    elseif input == "debugsync" then
+        C.DEBUG_SYNC = not C.DEBUG_SYNC
+        self:Print(C.DEBUG_SYNC and "Sync debug: ON" or "Sync debug: OFF")
+    elseif input == "testgm" then
+        if C.DEBUG_GUILD_MASTER then
+            self:Print(ns.L["SLASH_TESTGM_FORCED"])
+        else
+            local enabled = not ns.Rules:IsDebugGuildMaster()
+            ns.Rules:SetDebugGuildMaster(enabled)
+            self:Print(enabled and ns.L["SLASH_TESTGM_ON"] or ns.L["SLASH_TESTGM_OFF"])
+        end
+    else
+        self:Print(ns.L["SLASH_HELP"])
+    end
+end
+
+function GQ:Fire(event, ...)
+    Events:Fire(event, ...)
+end
+
+function GQ:RegisterCallback(event, callback)
+    Events:Register(event, callback, self)
+end
