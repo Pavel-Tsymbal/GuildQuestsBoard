@@ -2,7 +2,7 @@
 ## Title: Guild Quests
 ## Notes: Serverless guild quest board with peer-to-peer sync
 ## Version: 1.0.0
-## Author: GuildQuests
+## Author: Pavel Tsymbal
 ## SavedVariables: GuildQuestsDB
 ## SavedVariablesPerCharacter: GuildQuestsCharDB
 
