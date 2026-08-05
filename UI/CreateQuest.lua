@@ -165,13 +165,17 @@ function CreateQuest:Init()
             info.func = function()
                 self.selectedTimeMode = mode
                 UIDropDownMenu_SetText(self.fields.timeMode, self:GetTimeModeLabel(mode))
-                self:UpdateTimeValueLabel()
+                self:UpdateTimeValueVisibility()
             end
             UIDropDownMenu_AddButton(info)
         end
     end)
 
     self.fields.timeValue = self:AddInput("CREATE_DEADLINE", y - 58)
+    self.layout = {
+        maxParticipantsY = y - 110,
+        maxParticipantsCompactY = y - 58,
+    }
     y = y - 110
     self.fields.maxParticipants = self:AddInput("CREATE_MAX_PARTICIPANTS", y)
     self.fields.maxParticipants:SetText("1")
@@ -191,6 +195,7 @@ function CreateQuest:Init()
     self.datePlaceholder = ns.L["CREATE_DATE_PLACEHOLDER"]
 
     self:UpdateTexts()
+    self:UpdateTimeValueVisibility()
 
     ns.GQ:RegisterCallback("LocaleChanged", function()
         self:UpdateTexts()
@@ -258,6 +263,38 @@ function CreateQuest:CreateDescriptionField(y)
     return y - 130
 end
 
+function CreateQuest:SetFieldRow(labelKey, field, offsetY)
+    local label = self.labels[labelKey]
+    if label then
+        label:ClearAllPoints()
+        label:SetPoint("TOPLEFT", 16, offsetY)
+    end
+    if field then
+        field:ClearAllPoints()
+        field:SetPoint("TOPLEFT", 20, offsetY - 18)
+    end
+end
+
+function CreateQuest:UpdateTimeValueVisibility()
+    local mode = self.selectedTimeMode or C.TIME_MODE.NONE
+    local showTimeValue = mode ~= C.TIME_MODE.NONE
+    local label = self.labels["CREATE_DEADLINE"]
+
+    if label then
+        label:SetShown(showTimeValue)
+    end
+    if self.fields.timeValue then
+        self.fields.timeValue:SetShown(showTimeValue)
+    end
+
+    if showTimeValue then
+        self:UpdateTimeValueLabel()
+    end
+
+    local maxY = showTimeValue and self.layout.maxParticipantsY or self.layout.maxParticipantsCompactY
+    self:SetFieldRow("CREATE_MAX_PARTICIPANTS", self.fields.maxParticipants, maxY)
+end
+
 function CreateQuest:UpdateTimeValueLabel()
     local labelKey = self:GetTimeValueLabelKey(self.selectedTimeMode)
     if self.labels["CREATE_DEADLINE"] then
@@ -276,6 +313,7 @@ function CreateQuest:UpdateTexts()
         label:SetText(ns.L[key])
     end
     self:UpdateTimeValueLabel()
+    self:UpdateTimeValueVisibility()
     self.submit:SetText(ns.L["CREATE_SUBMIT"])
     self.cancel:SetText(ns.L["CREATE_CANCEL"])
 
@@ -319,8 +357,8 @@ function CreateQuest:Reset()
     self.selectedTimeMode = C.TIME_MODE.NONE
     UIDropDownMenu_SetText(self.fields.category, Util:GetCategoryLabel("OTHER"))
     UIDropDownMenu_SetText(self.fields.timeMode, self:GetTimeModeLabel(C.TIME_MODE.NONE))
-    self:UpdateTimeValueLabel()
     self.fields.timeValue:SetText(self.datePlaceholder)
+    self:UpdateTimeValueVisibility()
 end
 
 function CreateQuest:Show()
