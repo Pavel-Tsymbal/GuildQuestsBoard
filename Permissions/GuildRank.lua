@@ -42,12 +42,34 @@ function GuildRank:RebuildCache()
     end
 end
 
+function GuildRank:IsLocalPlayer(playerName)
+    if not playerName then
+        return true
+    end
+    local localName = Util:GetPlayerName()
+    return playerName == localName or Util:GetShortPlayerName(playerName) == localName
+end
+
+function GuildRank:GetLocalPlayerRankIndex()
+    if IsGuildLeader("player") then
+        return 0
+    end
+    local _, _, rankIndex = GetGuildInfo("player")
+    if rankIndex ~= nil then
+        return rankIndex
+    end
+    return nil
+end
+
 function GuildRank:GetRankIndex(playerName)
     if not playerName then
         playerName = Util:GetPlayerName()
     end
-    if IsGuildLeader("player") and playerName == Util:GetPlayerName() then
-        return 0
+    if self:IsLocalPlayer(playerName) then
+        local rankIndex = self:GetLocalPlayerRankIndex()
+        if rankIndex ~= nil then
+            return rankIndex
+        end
     end
     local short = Util:GetShortPlayerName(playerName)
     if self.cache[playerName] ~= nil then

@@ -9,13 +9,32 @@ function Rules:GetSettings()
     return ns.Storage:GetSettings() or ns.Schema:DefaultGuildSettings()
 end
 
+function Rules:IsPermissionEnabled(value)
+    return value == true or value == 1
+end
+
+function Rules:GetDefaultRankPermissions(rankIndex)
+    local defaults = ns.Schema:DefaultGuildSettings()
+    local perms = defaults.permissions.ranks[rankIndex]
+    if perms then
+        return perms
+    end
+    return {
+        create = rankIndex <= 3,
+        approve = rankIndex <= 1,
+        close = rankIndex <= 1,
+        rewardPaid = rankIndex <= 1,
+        delete = rankIndex <= 1,
+    }
+end
+
 function Rules:GetRankPermissions(rankIndex)
     local settings = self:GetSettings()
     local ranks = settings.permissions and settings.permissions.ranks
     if ranks and ranks[rankIndex] then
         return ranks[rankIndex]
     end
-    return {}
+    return self:GetDefaultRankPermissions(rankIndex)
 end
 
 function Rules:IsGuildMaster(playerName)
@@ -35,7 +54,7 @@ function Rules:HasRankPermission(playerName, key)
         return false
     end
     local perms = self:GetRankPermissions(rankIndex)
-    return perms[key] == true
+    return self:IsPermissionEnabled(perms[key])
 end
 
 function Rules:CanEditGuildSettings(playerName)

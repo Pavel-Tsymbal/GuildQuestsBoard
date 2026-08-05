@@ -44,7 +44,7 @@ function GuildSettings:UpdateRankPermission(rankIndex, key, value)
     local settings = Util:CopyTable(self:Get())
     settings.permissions = settings.permissions or { ranks = {} }
     settings.permissions.ranks[rankIndex] = settings.permissions.ranks[rankIndex] or {}
-    settings.permissions.ranks[rankIndex][key] = value
+    settings.permissions.ranks[rankIndex][key] = value and true or false
     return self:Save(settings)
 end
 
