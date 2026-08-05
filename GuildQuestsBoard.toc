@@ -50,6 +50,7 @@ UI\MainFrame.xml
 UI\MainFrame.lua
 UI\QuestList.lua
 UI\QuestDetail.lua
+UI\DateTimePicker.lua
 UI\CreateQuest.lua
 UI\SearchFilter.lua
 UI\SettingsPanel.lua
