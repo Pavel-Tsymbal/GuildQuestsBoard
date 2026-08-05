@@ -22,7 +22,7 @@ end
 
 function QuestList:CreateRow(parent, index)
     local row = CreateFrame("Button", parent:GetName() .. "Row" .. index, parent, "BackdropTemplate")
-    row:SetSize(640, 44)
+    row:SetSize(760, 44)
     row:SetBackdrop({
         bgFile = "Interface\\Buttons\\WHITE8x8",
         edgeFile = "Interface\\Buttons\\WHITE8x8",
@@ -35,12 +35,12 @@ function QuestList:CreateRow(parent, index)
 
     row.title = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     row.title:SetPoint("LEFT", 10, 6)
-    row.title:SetWidth(280)
+    row.title:SetWidth(320)
     row.title:SetJustifyH("LEFT")
 
     row.meta = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     row.meta:SetPoint("LEFT", 10, -10)
-    row.meta:SetWidth(400)
+    row.meta:SetWidth(480)
     row.meta:SetJustifyH("LEFT")
 
     row.reward = row:CreateFontString(nil, "OVERLAY", "GameFontGreen")
@@ -127,10 +127,6 @@ function QuestList:FilterByTab(quests)
             end
         elseif tab == "PERMANENT" then
             if quest.category == "PERMANENT" then
-                table.insert(filtered, quest)
-            end
-        elseif tab == "ACHIEVEMENT" then
-            if quest.category == "ACHIEVEMENT" then
                 table.insert(filtered, quest)
             end
         end

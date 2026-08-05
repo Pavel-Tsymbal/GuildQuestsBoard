@@ -18,6 +18,7 @@ local L = {
 
     BOARD_TITLE = "Guild Quest Board",
     MAIN_TAB_BOARD = "Board",
+    MAIN_TAB_ACHIEVEMENTS = "Achievements",
     MAIN_TAB_SETTINGS = "Settings",
     BOARD_CREATE = "Create Quest",
     BOARD_REFRESH = "Refresh",

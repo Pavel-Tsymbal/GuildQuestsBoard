@@ -18,6 +18,7 @@ local L = {
 
     BOARD_TITLE = "Доска гильдейских заданий",
     MAIN_TAB_BOARD = "Доска",
+    MAIN_TAB_ACHIEVEMENTS = "Достижения",
     MAIN_TAB_SETTINGS = "Настройки",
     BOARD_CREATE = "Создать задание",
     BOARD_REFRESH = "Обновить",

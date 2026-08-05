@@ -35,12 +35,11 @@ function SearchFilter:BuildFilterBar()
         { key = "OPEN", label = "BOARD_TAB_OPEN" },
         { key = "MINE", label = "BOARD_TAB_MINE" },
         { key = "PERMANENT", label = "BOARD_TAB_PERMANENT" },
-        { key = "ACHIEVEMENT", label = "BOARD_TAB_ACHIEVEMENT" },
     }
     for i, tab in ipairs(tabs) do
         local btn = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
-        btn:SetSize(90, 22)
-        btn:SetPoint("LEFT", (i - 1) * 94, 0)
+        btn:SetSize(100, 22)
+        btn:SetPoint("LEFT", (i - 1) * 104, 0)
         btn.tabKey = tab.key
         btn.labelKey = tab.label
         btn:SetText(ns.L[tab.label])

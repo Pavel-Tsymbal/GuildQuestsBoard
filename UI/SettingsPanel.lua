@@ -168,7 +168,7 @@ function SettingsPanel:ShowGuild()
     if not ns.GuildSettings:CanEdit() then
         local ro = panel:CreateFontString(nil, "OVERLAY", "GameFontDisable")
         ro:SetPoint("TOPLEFT", 0, 0)
-        ro:SetWidth(640)
+        ro:SetWidth(760)
         ro:SetText(ns.L["GUILD_READONLY"])
         self:RenderGuildReadOnly(panel, -28)
         return
@@ -181,7 +181,7 @@ function SettingsPanel:RenderGuildReadOnly(panel, y)
     local settings = ns.GuildSettings:Get()
     local fs = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     fs:SetPoint("TOPLEFT", 0, y)
-    fs:SetWidth(640)
+    fs:SetWidth(760)
     fs:SetJustifyH("LEFT")
     fs:SetText(string.format(
         "%s: create=%d accept=%d",
