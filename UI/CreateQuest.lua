@@ -39,6 +39,62 @@ function CreateQuest:AddInput(labelKey, offsetY, height)
     return box
 end
 
+function CreateQuest:AttachBlinkingCaret(editBox)
+    local caret = editBox:CreateTexture(nil, "OVERLAY")
+    caret:SetColorTexture(1, 1, 1, 0.9)
+    caret:SetSize(2, 14)
+    caret:Hide()
+
+    local blinkOn = true
+    local elapsed = 0
+
+    local function positionCaret(offset, height)
+        caret:ClearAllPoints()
+        caret:SetPoint("TOPLEFT", editBox, "TOPLEFT", (offset or 0) + 3, -2)
+        caret:SetSize(2, height or 14)
+    end
+
+    local function refreshCaret()
+        if editBox:HasFocus() and blinkOn then
+            caret:Show()
+        else
+            caret:Hide()
+        end
+    end
+
+    editBox:SetBlinkSpeed(0)
+    editBox:SetScript("OnCursorChanged", function(_, offset, height)
+        positionCaret(offset, height)
+        refreshCaret()
+    end)
+    editBox:SetScript("OnEditFocusGained", function(self)
+        blinkOn = true
+        elapsed = 0
+        local text = self:GetText() or ""
+        self:SetCursorPosition(string.len(text))
+        refreshCaret()
+    end)
+    editBox:SetScript("OnEditFocusLost", function()
+        caret:Hide()
+    end)
+    editBox:SetScript("OnTextChanged", function(self)
+        if self:HasFocus() then
+            refreshCaret()
+        end
+    end)
+    editBox:SetScript("OnUpdate", function(_, dt)
+        if not editBox:HasFocus() then
+            return
+        end
+        elapsed = elapsed + dt
+        if elapsed >= 0.53 then
+            elapsed = 0
+            blinkOn = not blinkOn
+            refreshCaret()
+        end
+    end)
+end
+
 function CreateQuest:Init()
     self.labels = {}
 
@@ -174,6 +230,7 @@ function CreateQuest:CreateDescriptionField(y)
     desc:EnableMouse(true)
     desc:EnableKeyboard(true)
     desc:SetMaxLetters(C.DESC_MAX)
+    desc:SetTextInsets(4, 4, 4, 4)
     desc:SetScript("OnMouseDown", function(editBox)
         editBox:SetFocus()
     end)
@@ -187,6 +244,7 @@ function CreateQuest:CreateDescriptionField(y)
         editBox:SetHeight(height)
         scroll:UpdateScrollChildRect()
     end)
+    self:AttachBlinkingCaret(desc)
     scroll:SetScript("OnMouseDown", function()
         desc:SetFocus()
     end)
