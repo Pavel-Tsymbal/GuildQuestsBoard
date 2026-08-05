@@ -1,5 +1,5 @@
 ## Interface: 11507, 11508, 11509
-## Title: Guild Quests
+## Title: Guild Quests Board
 ## Notes: Serverless guild quest board with peer-to-peer sync
 ## Version: 1.0.0
 ## Author: Pavel Tsymbal
