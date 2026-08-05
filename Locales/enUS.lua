@@ -32,8 +32,6 @@ local L = {
     FILTER_SCHEDULED = "Scheduled only",
     FILTER_DEADLINE = "Has deadline",
     FILTER_ALL = "All",
-    FILTER_CLEAR = "Clear Filters",
-
     CATEGORY_DUNGEON = "Dungeon / Raid",
     CATEGORY_FARMING = "Farming",
     CATEGORY_CRAFTING = "Crafting",

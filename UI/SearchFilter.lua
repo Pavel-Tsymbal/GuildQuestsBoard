@@ -50,15 +50,6 @@ function SearchFilter:BuildFilterBar()
         self.tabButtons[i] = btn
     end
 
-    self.clearBtn = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
-    self.clearBtn:SetSize(90, 22)
-    self.clearBtn:SetPoint("RIGHT", parent, "RIGHT", 0, 0)
-    self.clearBtn:SetText(ns.L["FILTER_CLEAR"])
-    self.clearBtn:SetScript("OnClick", function()
-        self:ClearFilters()
-        ns.MainUI:Refresh()
-    end)
-
     local search = GuildQuestsMainFrameSearch
     if search then
         search:HookScript("OnTextChanged", function()
@@ -78,17 +69,6 @@ function SearchFilter:UpdateFilterBarTexts()
     for _, btn in ipairs(self.tabButtons) do
         btn:SetText(ns.L[btn.labelKey])
     end
-    if self.clearBtn then
-        self.clearBtn:SetText(ns.L["FILTER_CLEAR"])
-    end
-end
-
-function SearchFilter:ClearFilters()
-    self.filters.category = nil
-    self.filters.status = nil
-    self.filters.minRewardGold = 0
-    self.filters.scheduledOnly = false
-    self.filters.hasDeadline = false
 end
 
 function SearchFilter:SetCategory(category)

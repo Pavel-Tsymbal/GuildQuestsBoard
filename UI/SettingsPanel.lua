@@ -44,6 +44,16 @@ function SettingsPanel:Init(container)
     end)
 end
 
+function SettingsPanel:UpdateTabHighlight()
+    if self.activeTab == "guild" then
+        self.tabGuild:SetEnabled(false)
+        self.tabPersonal:SetEnabled(true)
+    else
+        self.tabPersonal:SetEnabled(false)
+        self.tabGuild:SetEnabled(true)
+    end
+end
+
 function SettingsPanel:ClearContent()
     local children = { self.content:GetChildren() }
     for _, child in ipairs(children) do
@@ -92,6 +102,7 @@ end
 
 function SettingsPanel:ShowPersonal()
     self.activeTab = "personal"
+    self:UpdateTabHighlight()
     self:ClearContent()
     local panel = CreateFrame("Frame", nil, self.content)
     panel:SetAllPoints()
@@ -147,6 +158,7 @@ end
 
 function SettingsPanel:ShowGuild()
     self.activeTab = "guild"
+    self:UpdateTabHighlight()
     self:ClearContent()
     local panel = CreateFrame("Frame", nil, self.content)
     panel:SetAllPoints()

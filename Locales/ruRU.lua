@@ -32,8 +32,6 @@ local L = {
     FILTER_SCHEDULED = "Только по расписанию",
     FILTER_DEADLINE = "С дедлайном",
     FILTER_ALL = "Все",
-    FILTER_CLEAR = "Сбросить фильтры",
-
     CATEGORY_DUNGEON = "Подземелье / Рейд",
     CATEGORY_FARMING = "Фарм",
     CATEGORY_CRAFTING = "Крафт",
