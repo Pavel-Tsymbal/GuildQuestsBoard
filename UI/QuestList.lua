@@ -125,8 +125,12 @@ function QuestList:FilterByTab(quests)
             if quest.creator == player or (quest.participants and quest.participants[player]) then
                 table.insert(filtered, quest)
             end
-        elseif tab == "SCHEDULED" then
-            if quest.timeMode == C.TIME_MODE.SCHEDULED then
+        elseif tab == "PERMANENT" then
+            if quest.category == "PERMANENT" then
+                table.insert(filtered, quest)
+            end
+        elseif tab == "ACHIEVEMENT" then
+            if quest.category == "ACHIEVEMENT" then
                 table.insert(filtered, quest)
             end
         end

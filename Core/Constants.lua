@@ -46,6 +46,8 @@ ns.Constants = {
     },
 
     CATEGORIES = {
+        "PERMANENT",
+        "ACHIEVEMENT",
         "DUNGEON",
         "FARMING",
         "CRAFTING",

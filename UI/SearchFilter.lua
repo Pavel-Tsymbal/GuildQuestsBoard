@@ -17,6 +17,7 @@ SearchFilter.filters = {
 function SearchFilter:Init()
     self.filters.tab = "ALL"
     self:BuildFilterBar()
+    self:UpdateTabHighlight()
     ns.GQ:RegisterCallback("LocaleChanged", function()
         self:UpdateFilterBarTexts()
     end)
@@ -33,7 +34,8 @@ function SearchFilter:BuildFilterBar()
         { key = "ALL", label = "BOARD_TAB_ALL" },
         { key = "OPEN", label = "BOARD_TAB_OPEN" },
         { key = "MINE", label = "BOARD_TAB_MINE" },
-        { key = "SCHEDULED", label = "BOARD_TAB_SCHEDULED" },
+        { key = "PERMANENT", label = "BOARD_TAB_PERMANENT" },
+        { key = "ACHIEVEMENT", label = "BOARD_TAB_ACHIEVEMENT" },
     }
     for i, tab in ipairs(tabs) do
         local btn = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
@@ -45,6 +47,7 @@ function SearchFilter:BuildFilterBar()
         btn:SetScript("OnClick", function(b)
             self.filters.tab = b.tabKey
             ns.QuestList:SetTab(b.tabKey)
+            self:UpdateTabHighlight()
             ns.MainUI:Refresh()
         end)
         self.tabButtons[i] = btn
@@ -62,6 +65,16 @@ function SearchFilter:BuildFilterBar()
     end
 end
 
+function SearchFilter:UpdateTabHighlight()
+    if not self.tabButtons then
+        return
+    end
+    local activeTab = self.filters.tab or "ALL"
+    for _, btn in ipairs(self.tabButtons) do
+        btn:SetEnabled(btn.tabKey ~= activeTab)
+    end
+end
+
 function SearchFilter:UpdateFilterBarTexts()
     if not self.tabButtons then
         return
@@ -69,6 +82,7 @@ function SearchFilter:UpdateFilterBarTexts()
     for _, btn in ipairs(self.tabButtons) do
         btn:SetText(ns.L[btn.labelKey])
     end
+    self:UpdateTabHighlight()
 end
 
 function SearchFilter:SetCategory(category)
