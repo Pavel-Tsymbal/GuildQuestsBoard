@@ -34,7 +34,7 @@ function Schema:DefaultCharSettings()
             duration = 5,
             position = "TOPRIGHT",
             sound = true,
-            showInCombat = false,
+            showInCombat = true,
         },
         ui = {
             minimap = { hide = false, angle = 220 },

@@ -158,7 +158,7 @@ local L = {
     TOOLTIP_PERSONAL_DURATION = "Что: Время показа уведомления.\n\nРекомендуется: 5 сек.",
     TOOLTIP_PERSONAL_POSITION = "Что: Угол экрана для уведомлений.\n\nРекомендуется: Сверху справа.",
     TOOLTIP_PERSONAL_SOUND = "Что: Звук при новом задании.",
-    TOOLTIP_PERSONAL_COMBAT = "Что: Показывать в бою.\n\nРекомендуется: Выключено.",
+    TOOLTIP_PERSONAL_COMBAT = "Что: Показывать в бою.\n\nРекомендуется: Включено.",
     TOOLTIP_PERSONAL_LOCALE = "Что: Язык интерфейса аддона.\n\nТекст заданий игроков не переводится.",
 }
 

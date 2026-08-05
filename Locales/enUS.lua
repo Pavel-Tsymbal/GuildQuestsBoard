@@ -158,7 +158,7 @@ local L = {
     TOOLTIP_PERSONAL_DURATION = "What: How long notifications stay visible.\n\nWhy: Balance visibility vs. screen clutter.\n\nRecommended: 5 seconds.\n\nConsequence: Longer duration may overlap gameplay.",
     TOOLTIP_PERSONAL_POSITION = "What: Screen corner for notifications.\n\nRecommended: Top Right.\n\nConsequence: Pick a corner that does not cover vital UI.",
     TOOLTIP_PERSONAL_SOUND = "What: Play a sound with new quest notifications.\n\nRecommended: Enabled.\n\nConsequence: May be distracting during raids.",
-    TOOLTIP_PERSONAL_COMBAT = "What: Show notifications while in combat.\n\nRecommended: Disabled.\n\nConsequence: Enabling may distract during fights.",
+    TOOLTIP_PERSONAL_COMBAT = "What: Show notifications while in combat.\n\nRecommended: Enabled.\n\nConsequence: Disabling hides toasts during fights.",
     TOOLTIP_PERSONAL_LOCALE = "What: Addon display language.\n\nNote: Player-written quest text is never translated.",
 }
 
