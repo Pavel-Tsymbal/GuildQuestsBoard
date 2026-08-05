@@ -29,7 +29,7 @@ local L = {
     BOARD_TAB_PERMANENT = "Постоянные",
     BOARD_TAB_ACHIEVEMENT = "Достижения",
 
-    SEARCH_PLACEHOLDER = "Поиск: название, автор, участник, тег...",
+    SEARCH_PLACEHOLDER = "Поиск: название, автор, участник...",
     FILTER_CATEGORY = "Категория",
     FILTER_STATUS = "Статус",
     FILTER_REWARD = "Мин. награда (золото)",
@@ -63,8 +63,7 @@ local L = {
     CREATE_QUEST_TITLE = "Название",
     CREATE_QUEST_DESC = "Описание",
     CREATE_CATEGORY = "Категория",
-    CREATE_TAG = "Свой тег (необязательно)",
-    CREATE_REWARD_GOLD = "Награда (золото)",
+    CREATE_REWARD = "Награда",
     CREATE_ITEM_REWARDS = "Предметы (необязательно)",
     CREATE_TIME_MODE = "Время",
     CREATE_DEADLINE = "Дедлайн",
@@ -135,6 +134,7 @@ local L = {
     ERR_INVALID_DESC = "Укажите описание.",
     ERR_INVALID_DATE = "Укажите дату в формате YYYY-MM-DD HH:MM.",
     ERR_INVALID_PARTICIPANTS = "Минимум 1 участник.",
+    ERR_INVALID_REWARD = "Слишком длинное описание награды.",
     ERR_VERSION_MISMATCH = "У части участников несовместимая версия аддона.",
 
     NOTIFY_NEW_QUEST = "Новое гильдейское задание",

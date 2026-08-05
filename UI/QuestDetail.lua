@@ -167,8 +167,8 @@ function QuestDetail:Show(questId)
 
     local lines = {
         ns.L["DETAIL_CREATOR"] .. ": " .. (quest.creator or "?"),
-        ns.L["DETAIL_REWARD"] .. ": " .. Util:FormatGold(quest.rewardGold or 0),
-        Util:GetCategoryLabel(quest.category) .. (quest.categoryTag ~= "" and (" / " .. quest.categoryTag) or ""),
+        ns.L["DETAIL_REWARD"] .. ": " .. Util:GetRewardText(quest),
+        Util:GetCategoryLabel(quest.category),
         Util:GetStatusLabel(quest.status),
     }
     if quest.deadline then

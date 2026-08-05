@@ -45,7 +45,7 @@ function QuestList:CreateRow(parent, index)
 
     row.reward = row:CreateFontString(nil, "OVERLAY", "GameFontGreen")
     row.reward:SetPoint("RIGHT", -10, 4)
-    row.reward:SetWidth(120)
+    row.reward:SetWidth(180)
     row.reward:SetJustifyH("RIGHT")
 
     row.status = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
@@ -76,9 +76,6 @@ function QuestList:Render(parent, quests, onClick)
 
         row.title:SetText(quest.title or "?")
         local cat = Util:GetCategoryLabel(quest.category)
-        if quest.categoryTag and quest.categoryTag ~= "" then
-            cat = cat .. " / " .. quest.categoryTag
-        end
         local pCount = Util:CountTable(quest.participants)
         row.meta:SetText(string.format(
             "%s | %s | %s (%d/%d)",
@@ -88,7 +85,7 @@ function QuestList:Render(parent, quests, onClick)
             pCount,
             quest.maxParticipants or 1
         ))
-        row.reward:SetText(Util:FormatGold(quest.rewardGold or 0))
+        row.reward:SetText(Util:GetRewardText(quest))
         row.status:SetText(Util:GetStatusLabel(quest.status))
 
         row:SetScript("OnClick", function()

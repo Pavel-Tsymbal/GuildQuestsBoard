@@ -39,6 +39,15 @@ function CreateQuest:AddInput(labelKey, offsetY, height)
     return box
 end
 
+function CreateQuest:AddDropdown(labelKey, offsetY, width, initialize)
+    self:AddLabel(labelKey, offsetY)
+    local dropdown = CreateFrame("Frame", nil, self.frame, "UIDropDownMenuTemplate")
+    dropdown:SetPoint("TOPLEFT", 8, offsetY - 22)
+    UIDropDownMenu_SetWidth(dropdown, width or 180)
+    UIDropDownMenu_Initialize(dropdown, initialize)
+    return dropdown
+end
+
 function CreateQuest:AttachBlinkingCaret(editBox)
     local caret = editBox:CreateTexture(nil, "OVERLAY")
     caret:SetColorTexture(1, 1, 1, 0.9)
@@ -126,11 +135,7 @@ function CreateQuest:Init()
     y = self:CreateDescriptionField(y)
     y = y - 12
 
-    self:AddLabel("CREATE_CATEGORY", y)
-    self.fields.category = CreateFrame("Frame", nil, self.frame, "UIDropDownMenuTemplate")
-    self.fields.category:SetPoint("TOPLEFT", 8, y - 8)
-    UIDropDownMenu_SetWidth(self.fields.category, 180)
-    UIDropDownMenu_Initialize(self.fields.category, function(_, level, menuList)
+    self.fields.category = self:AddDropdown("CREATE_CATEGORY", y, 180, function(_, level, menuList)
         local info = UIDropDownMenu_CreateInfo()
         for _, cat in ipairs(C.CATEGORIES) do
             info.text = Util:GetCategoryLabel(cat)
@@ -143,16 +148,11 @@ function CreateQuest:Init()
         end
     end)
 
-    self.fields.tag = self:AddInput("CREATE_TAG", y - 48)
-    y = y - 96
-    self.fields.reward = self:AddInput("CREATE_REWARD_GOLD", y)
+    y = y - 58
+    self.fields.reward = self:AddInput("CREATE_REWARD", y)
     y = y - 52
 
-    self:AddLabel("CREATE_TIME_MODE", y)
-    self.fields.timeMode = CreateFrame("Frame", nil, self.frame, "UIDropDownMenuTemplate")
-    self.fields.timeMode:SetPoint("TOPLEFT", 8, y - 8)
-    UIDropDownMenu_SetWidth(self.fields.timeMode, 180)
-    UIDropDownMenu_Initialize(self.fields.timeMode, function()
+    self.fields.timeMode = self:AddDropdown("CREATE_TIME_MODE", y, 180, function()
         local info = UIDropDownMenu_CreateInfo()
         local modes = {
             C.TIME_MODE.NONE,
@@ -171,8 +171,8 @@ function CreateQuest:Init()
         end
     end)
 
-    self.fields.timeValue = self:AddInput("CREATE_DEADLINE", y - 48)
-    y = y - 96
+    self.fields.timeValue = self:AddInput("CREATE_DEADLINE", y - 58)
+    y = y - 110
     self.fields.maxParticipants = self:AddInput("CREATE_MAX_PARTICIPANTS", y)
     self.fields.maxParticipants:SetText("1")
 
@@ -313,7 +313,6 @@ end
 function CreateQuest:Reset()
     self.fields.title:SetText("")
     self.fields.desc:SetText("")
-    self.fields.tag:SetText("")
     self.fields.reward:SetText("")
     self.fields.maxParticipants:SetText("1")
     self.selectedCategory = "OTHER"
@@ -346,8 +345,7 @@ function CreateQuest:Submit()
         title = self.fields.title:GetText() or "",
         description = self.fields.desc:GetText() or "",
         category = self.selectedCategory,
-        categoryTag = self.fields.tag:GetText(),
-        rewardGold = Util:ParseGoldInput(self.fields.reward:GetText()),
+        reward = Util:Trim(self.fields.reward:GetText() or ""),
         timeMode = self.selectedTimeMode,
         maxParticipants = tonumber(self.fields.maxParticipants:GetText()) or 1,
         itemRewards = {},

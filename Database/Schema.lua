@@ -55,6 +55,7 @@ function Schema:NewQuest(data)
         description = data.description,
         category = data.category or "OTHER",
         categoryTag = data.categoryTag or "",
+        reward = data.reward or "",
         rewardGold = data.rewardGold or 0,
         itemRewards = data.itemRewards or {},
         timeMode = data.timeMode or C.TIME_MODE.NONE,

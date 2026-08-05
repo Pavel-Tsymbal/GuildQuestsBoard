@@ -29,7 +29,7 @@ local L = {
     BOARD_TAB_PERMANENT = "Permanent",
     BOARD_TAB_ACHIEVEMENT = "Achievements",
 
-    SEARCH_PLACEHOLDER = "Search title, creator, participant, tag...",
+    SEARCH_PLACEHOLDER = "Search title, creator, participant...",
     FILTER_CATEGORY = "Category",
     FILTER_STATUS = "Status",
     FILTER_REWARD = "Min Reward (gold)",
@@ -63,8 +63,7 @@ local L = {
     CREATE_QUEST_TITLE = "Title",
     CREATE_QUEST_DESC = "Description",
     CREATE_CATEGORY = "Category",
-    CREATE_TAG = "Custom Tag (optional)",
-    CREATE_REWARD_GOLD = "Gold Reward",
+    CREATE_REWARD = "Reward",
     CREATE_ITEM_REWARDS = "Item Rewards (optional)",
     CREATE_TIME_MODE = "Timing",
     CREATE_DEADLINE = "Deadline",
@@ -135,6 +134,7 @@ local L = {
     ERR_INVALID_DESC = "Description is required.",
     ERR_INVALID_DATE = "Enter date as YYYY-MM-DD HH:MM.",
     ERR_INVALID_PARTICIPANTS = "Max participants must be at least 1.",
+    ERR_INVALID_REWARD = "Reward text is too long.",
     ERR_VERSION_MISMATCH = "Some guild members use an incompatible addon version.",
 
     NOTIFY_NEW_QUEST = "New Guild Quest",

@@ -167,6 +167,20 @@ function Util:FormatGold(amount)
     return string.format("%dc", copper)
 end
 
+function Util:GetRewardText(quest)
+    if not quest then
+        return "-"
+    end
+    local reward = self:Trim(quest.reward or "")
+    if reward ~= "" then
+        return reward
+    end
+    if quest.rewardGold and quest.rewardGold > 0 then
+        return self:FormatGold(quest.rewardGold)
+    end
+    return "-"
+end
+
 function Util:ParseGoldInput(text)
     text = self:Trim(text or "")
     if text == "" then

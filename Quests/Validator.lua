@@ -28,9 +28,9 @@ function Validator:ValidateCreate(data)
     if maxP < 1 or maxP > C.MAX_PARTICIPANTS then
         return false, ns.L["ERR_INVALID_PARTICIPANTS"]
     end
-    local tag = Util:Trim(data.categoryTag or "")
-    if #tag > C.TAG_MAX then
-        return false, ns.L["ERR_INVALID_TITLE"]
+    local reward = Util:Trim(data.reward or "")
+    if #reward > C.REWARD_MAX then
+        return false, ns.L["ERR_INVALID_REWARD"]
     end
     local timeMode = data.timeMode or C.TIME_MODE.NONE
     if timeMode == C.TIME_MODE.DEADLINE and not data.deadline then
@@ -71,8 +71,9 @@ function Validator:SanitizeCreate(data)
         title = Util:Trim(data.title),
         description = Util:Trim(data.description),
         category = data.category or "OTHER",
-        categoryTag = Util:Trim(data.categoryTag or ""),
-        rewardGold = tonumber(data.rewardGold) or 0,
+        categoryTag = "",
+        reward = Util:Trim(data.reward or ""),
+        rewardGold = 0,
         itemRewards = itemRewards,
         timeMode = data.timeMode or C.TIME_MODE.NONE,
         deadline = data.deadline,

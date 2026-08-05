@@ -112,7 +112,7 @@ function SearchFilter:MatchesSearch(quest, searchText)
     local function contains(value)
         return value and value:lower():find(searchText, 1, true)
     end
-    if contains(quest.title) or contains(quest.creator) or contains(quest.categoryTag) then
+    if contains(quest.title) or contains(quest.creator) then
         return true
     end
     for name in pairs(quest.participants or {}) do
