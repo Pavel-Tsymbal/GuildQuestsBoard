@@ -68,6 +68,28 @@ function QuestDetail:Init()
 
     self.buttons = {}
 
+    ns.GQ:RegisterCallback("LocaleChanged", function()
+        self:UpdateDeleteDialog()
+        if self.currentId and self.frame:IsShown() then
+            self:Show(self.currentId)
+        end
+    end)
+
+    self:UpdateDeleteDialog()
+
+    ns.GQ:RegisterCallback("QuestUpdated", function(_, questId)
+        if self.currentId == questId and self.frame:IsShown() then
+            self:Show(questId)
+        end
+    end)
+    ns.GQ:RegisterCallback("QuestDeleted", function(_, questId)
+        if self.currentId == questId then
+            self:Hide()
+        end
+    end)
+end
+
+function QuestDetail:UpdateDeleteDialog()
     StaticPopupDialogs["GUILDQUESTS_CONFIRM_DELETE"] = {
         text = ns.L["DELETE_CONFIRM"],
         button1 = YES,
@@ -86,17 +108,6 @@ function QuestDetail:Init()
         hideOnEscape = true,
         preferredIndex = 3,
     }
-
-    ns.GQ:RegisterCallback("QuestUpdated", function(_, questId)
-        if self.currentId == questId and self.frame:IsShown() then
-            self:Show(questId)
-        end
-    end)
-    ns.GQ:RegisterCallback("QuestDeleted", function(_, questId)
-        if self.currentId == questId then
-            self:Hide()
-        end
-    end)
 end
 
 function QuestDetail:ConfirmDelete(questId, questTitle)

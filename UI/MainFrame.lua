@@ -114,6 +114,9 @@ function MainUI:UpdateTexts()
     self.tabSettings:SetText(ns.L["MAIN_TAB_SETTINGS"])
     self.frameCreate:SetText(ns.L["BOARD_CREATE"])
     self.frameEmpty:SetText(ns.L["BOARD_EMPTY"])
+    if self.frameSearch.SetPlaceholderText then
+        self.frameSearch:SetPlaceholderText(ns.L["SEARCH_PLACEHOLDER"])
+    end
     if self.activeView == "board" then
         self.frameTitle:SetText(ns.L["BOARD_TITLE"])
     else

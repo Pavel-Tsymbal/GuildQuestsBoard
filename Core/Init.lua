@@ -14,9 +14,9 @@ ns.GQ = GQ
 GQ.modules = {}
 
 function GQ:OnInitialize()
-    ns.Locale:Init()
     ns.DB = ns.Storage
     ns.DB:Init()
+    ns.Locale:Init()
     ns.PersonalSettings:Init()
     ns.GuildRank:Init()
     ns.Permissions = ns.Rules
@@ -104,7 +104,7 @@ function GQ:SlashCommand(input)
         ns.SyncEngine:PrintDebug()
     elseif input == "debugsync" then
         C.DEBUG_SYNC = not C.DEBUG_SYNC
-        self:Print(C.DEBUG_SYNC and "Sync debug: ON" or "Sync debug: OFF")
+        self:Print(C.DEBUG_SYNC and ns.L["SLASH_DEBUGSYNC_ON"] or ns.L["SLASH_DEBUGSYNC_OFF"])
     elseif input == "testgm" then
         if C.DEBUG_GUILD_MASTER then
             self:Print(ns.L["SLASH_TESTGM_FORCED"])

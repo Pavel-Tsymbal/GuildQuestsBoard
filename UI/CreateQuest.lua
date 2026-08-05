@@ -5,7 +5,43 @@ local Util = ns.Util
 local CreateQuest = {}
 ns.CreateQuest = CreateQuest
 
+function CreateQuest:GetTimeModeLabel(mode)
+    if mode == C.TIME_MODE.DEADLINE then
+        return ns.L["TIME_MODE_DEADLINE"]
+    end
+    if mode == C.TIME_MODE.SCHEDULED then
+        return ns.L["TIME_MODE_SCHEDULED"]
+    end
+    return ns.L["TIME_MODE_NONE"]
+end
+
+function CreateQuest:GetTimeValueLabelKey(mode)
+    if mode == C.TIME_MODE.SCHEDULED then
+        return "CREATE_SCHEDULED"
+    end
+    return "CREATE_DEADLINE"
+end
+
+function CreateQuest:AddLabel(localeKey, offsetY)
+    local fs = self.frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    fs:SetPoint("TOPLEFT", 16, offsetY)
+    self.labels[localeKey] = fs
+    fs:SetText(ns.L[localeKey])
+    return fs
+end
+
+function CreateQuest:AddInput(labelKey, offsetY, height)
+    self:AddLabel(labelKey, offsetY)
+    local box = CreateFrame("EditBox", nil, self.frame, "InputBoxTemplate")
+    box:SetSize(400, height or 24)
+    box:SetPoint("TOPLEFT", 20, offsetY - 18)
+    box:SetAutoFocus(false)
+    return box
+end
+
 function CreateQuest:Init()
+    self.labels = {}
+
     self.frame = CreateFrame("Frame", "GuildQuestsCreateFrame", UIParent, "BackdropTemplate")
     self.frame:SetSize(460, 560)
     self.frame:SetPoint("CENTER")
@@ -25,33 +61,16 @@ function CreateQuest:Init()
 
     self.title = self.frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     self.title:SetPoint("TOPLEFT", 16, -16)
-    self.title:SetText(ns.L["CREATE_TITLE"])
 
     local y = -44
     self.fields = {}
 
-    local function addLabel(text, offsetY)
-        local fs = self.frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-        fs:SetPoint("TOPLEFT", 16, offsetY)
-        fs:SetText(text)
-        return fs
-    end
-
-    local function addInput(name, offsetY, height)
-        addLabel(name, offsetY)
-        local box = CreateFrame("EditBox", nil, self.frame, "InputBoxTemplate")
-        box:SetSize(400, height or 24)
-        box:SetPoint("TOPLEFT", 20, offsetY - 18)
-        box:SetAutoFocus(false)
-        return box
-    end
-
-    self.fields.title = addInput(ns.L["CREATE_QUEST_TITLE"], y)
+    self.fields.title = self:AddInput("CREATE_QUEST_TITLE", y)
     y = y - 52
     y = self:CreateDescriptionField(y)
     y = y - 12
 
-    addLabel(ns.L["CREATE_CATEGORY"], y)
+    self:AddLabel("CREATE_CATEGORY", y)
     self.fields.category = CreateFrame("Frame", nil, self.frame, "UIDropDownMenuTemplate")
     self.fields.category:SetPoint("TOPLEFT", 8, y - 8)
     UIDropDownMenu_SetWidth(self.fields.category, 180)
@@ -68,59 +87,63 @@ function CreateQuest:Init()
         end
     end)
 
-    self.fields.tag = addInput(ns.L["CREATE_TAG"], y - 48)
+    self.fields.tag = self:AddInput("CREATE_TAG", y - 48)
     y = y - 96
-    self.fields.reward = addInput(ns.L["CREATE_REWARD_GOLD"], y)
+    self.fields.reward = self:AddInput("CREATE_REWARD_GOLD", y)
     y = y - 52
 
-    addLabel(ns.L["CREATE_TIME_MODE"], y)
+    self:AddLabel("CREATE_TIME_MODE", y)
     self.fields.timeMode = CreateFrame("Frame", nil, self.frame, "UIDropDownMenuTemplate")
     self.fields.timeMode:SetPoint("TOPLEFT", 8, y - 8)
     UIDropDownMenu_SetWidth(self.fields.timeMode, 180)
     UIDropDownMenu_Initialize(self.fields.timeMode, function()
         local info = UIDropDownMenu_CreateInfo()
         local modes = {
-            { key = C.TIME_MODE.NONE, label = ns.L["TIME_MODE_NONE"] },
-            { key = C.TIME_MODE.DEADLINE, label = ns.L["TIME_MODE_DEADLINE"] },
-            { key = C.TIME_MODE.SCHEDULED, label = ns.L["TIME_MODE_SCHEDULED"] },
+            C.TIME_MODE.NONE,
+            C.TIME_MODE.DEADLINE,
+            C.TIME_MODE.SCHEDULED,
         }
-        for _, m in ipairs(modes) do
-            info.text = m.label
-            info.value = m.key
+        for _, mode in ipairs(modes) do
+            info.text = self:GetTimeModeLabel(mode)
+            info.value = mode
             info.func = function()
-                self.selectedTimeMode = m.key
-                UIDropDownMenu_SetText(self.fields.timeMode, m.label)
+                self.selectedTimeMode = mode
+                UIDropDownMenu_SetText(self.fields.timeMode, self:GetTimeModeLabel(mode))
+                self:UpdateTimeValueLabel()
             end
             UIDropDownMenu_AddButton(info)
         end
     end)
 
-    self.fields.timeValue = addInput(ns.L["CREATE_DEADLINE"], y - 48)
-    self.fields.timeValue:SetText("YYYY-MM-DD HH:MM")
+    self.fields.timeValue = self:AddInput("CREATE_DEADLINE", y - 48)
     y = y - 96
-    self.fields.maxParticipants = addInput(ns.L["CREATE_MAX_PARTICIPANTS"], y)
+    self.fields.maxParticipants = self:AddInput("CREATE_MAX_PARTICIPANTS", y)
     self.fields.maxParticipants:SetText("1")
 
     self.submit = CreateFrame("Button", nil, self.frame, "UIPanelButtonTemplate")
     self.submit:SetSize(120, 24)
     self.submit:SetPoint("BOTTOMRIGHT", -16, 16)
-    self.submit:SetText(ns.L["CREATE_SUBMIT"])
     self.submit:SetScript("OnClick", function() self:Submit() end)
 
     self.cancel = CreateFrame("Button", nil, self.frame, "UIPanelButtonTemplate")
     self.cancel:SetSize(120, 24)
     self.cancel:SetPoint("RIGHT", self.submit, "LEFT", -8, 0)
-    self.cancel:SetText(ns.L["CREATE_CANCEL"])
     self.cancel:SetScript("OnClick", function() self:Hide() end)
 
     self.selectedCategory = "OTHER"
     self.selectedTimeMode = C.TIME_MODE.NONE
+    self.datePlaceholder = ns.L["CREATE_DATE_PLACEHOLDER"]
+
+    self:UpdateTexts()
+
+    ns.GQ:RegisterCallback("LocaleChanged", function()
+        self:UpdateTexts()
+    end)
 end
 
 function CreateQuest:CreateDescriptionField(y)
-    local label = self.frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    label:SetPoint("TOPLEFT", 16, y)
-    label:SetText(ns.L["CREATE_QUEST_DESC"])
+    self.labels["CREATE_QUEST_DESC"] = self.frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    self.labels["CREATE_QUEST_DESC"]:SetPoint("TOPLEFT", 16, y)
 
     local scrollBG = CreateFrame("Frame", nil, self.frame, "BackdropTemplate")
     scrollBG:SetSize(400, 110)
@@ -177,9 +200,49 @@ function CreateQuest:CreateDescriptionField(y)
     return y - 130
 end
 
+function CreateQuest:UpdateTimeValueLabel()
+    local labelKey = self:GetTimeValueLabelKey(self.selectedTimeMode)
+    if self.labels["CREATE_DEADLINE"] then
+        self.labels["CREATE_DEADLINE"]:SetText(ns.L[labelKey])
+    end
+end
+
+function CreateQuest:UpdateTexts()
+    if not self.frame then
+        return
+    end
+
+    self.datePlaceholder = ns.L["CREATE_DATE_PLACEHOLDER"]
+    self.title:SetText(ns.L["CREATE_TITLE"])
+    for key, label in pairs(self.labels or {}) do
+        label:SetText(ns.L[key])
+    end
+    self:UpdateTimeValueLabel()
+    self.submit:SetText(ns.L["CREATE_SUBMIT"])
+    self.cancel:SetText(ns.L["CREATE_CANCEL"])
+
+    if self.selectedCategory then
+        UIDropDownMenu_SetText(self.fields.category, Util:GetCategoryLabel(self.selectedCategory))
+    end
+    if self.selectedTimeMode then
+        UIDropDownMenu_SetText(self.fields.timeMode, self:GetTimeModeLabel(self.selectedTimeMode))
+    end
+
+    local timeText = self.fields.timeValue:GetText() or ""
+    if timeText == ""
+        or timeText == self.datePlaceholder
+        or timeText == "YYYY-MM-DD HH:MM"
+        or timeText == "ГГГГ-ММ-ДД ЧЧ:ММ" then
+        self.fields.timeValue:SetText(self.datePlaceholder)
+    end
+end
+
 function CreateQuest:ParseDateTime(text)
     text = Util:Trim(text)
-    if text == "" or text == "YYYY-MM-DD HH:MM" then
+    if text == ""
+        or text == self.datePlaceholder
+        or text == "YYYY-MM-DD HH:MM"
+        or text == "ГГГГ-ММ-ДД ЧЧ:ММ" then
         return nil
     end
     local y, m, d, h, min = text:match("(%d+)%-(%d+)%-(%d+)%s+(%d+):(%d+)")
@@ -198,7 +261,9 @@ function CreateQuest:Reset()
     self.selectedCategory = "OTHER"
     self.selectedTimeMode = C.TIME_MODE.NONE
     UIDropDownMenu_SetText(self.fields.category, Util:GetCategoryLabel("OTHER"))
-    UIDropDownMenu_SetText(self.fields.timeMode, ns.L["TIME_MODE_NONE"])
+    UIDropDownMenu_SetText(self.fields.timeMode, self:GetTimeModeLabel(C.TIME_MODE.NONE))
+    self:UpdateTimeValueLabel()
+    self.fields.timeValue:SetText(self.datePlaceholder)
 end
 
 function CreateQuest:Show()
@@ -206,6 +271,7 @@ function CreateQuest:Show()
         ns.GQ:Print(ns.L["ERR_NOT_IN_GUILD"])
         return
     end
+    self:UpdateTexts()
     self:Reset()
     self.frame:Show()
 end

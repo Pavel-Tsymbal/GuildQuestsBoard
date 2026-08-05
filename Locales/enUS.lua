@@ -8,6 +8,8 @@ local L = {
     SLASH_TESTGM_ON = "Test GM mode enabled (guild settings editable).",
     SLASH_TESTGM_OFF = "Test GM mode disabled.",
     SLASH_TESTGM_FORCED = "Test GM mode is always on (DEBUG_GUILD_MASTER in Constants).",
+    SLASH_DEBUGSYNC_ON = "Sync debug: ON",
+    SLASH_DEBUGSYNC_OFF = "Sync debug: OFF",
 
     MINIMAP_LEFT_CLICK = "Open Guild Board",
     MINIMAP_RIGHT_TITLE = "Guild Quests",
@@ -67,6 +69,7 @@ local L = {
     CREATE_DEADLINE = "Deadline",
     CREATE_SCHEDULED = "Scheduled Start",
     CREATE_MAX_PARTICIPANTS = "Max Participants",
+    CREATE_DATE_PLACEHOLDER = "YYYY-MM-DD HH:MM",
     CREATE_SUBMIT = "Post Quest",
     CREATE_CANCEL = "Cancel",
 
@@ -92,6 +95,8 @@ local L = {
     SETTINGS_PERSONAL = "Personal",
     SETTINGS_GUILD = "Guild",
     SETTINGS_LOCALE = "Language",
+    LOCALE_EN = "English",
+    LOCALE_RU = "Russian",
     SETTINGS_NOTIFICATIONS = "Enable Notifications",
     SETTINGS_NOTIFICATION_DURATION = "Notification Duration (seconds)",
     SETTINGS_NOTIFICATION_POSITION = "Notification Position",
@@ -106,6 +111,7 @@ local L = {
 
     GUILD_PERMISSIONS = "Rank Permissions",
     GUILD_PERM_RANK = "Rank",
+    GUILD_RANK_FALLBACK = "Rank %d",
     GUILD_SYNC = "Sync Requirements",
     GUILD_MIN_CREATE = "Min online to create",
     GUILD_MIN_ACCEPT = "Min online to accept",

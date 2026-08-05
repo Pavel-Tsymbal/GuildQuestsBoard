@@ -8,6 +8,8 @@ local L = {
     SLASH_TESTGM_ON = "Тестовый режим GM включён — настройки гильдии доступны для редактирования.",
     SLASH_TESTGM_OFF = "Тестовый режим GM выключен.",
     SLASH_TESTGM_FORCED = "Тестовый режим GM всегда включён (DEBUG_GUILD_MASTER в Constants).",
+    SLASH_DEBUGSYNC_ON = "Отладка синхронизации: вкл.",
+    SLASH_DEBUGSYNC_OFF = "Отладка синхронизации: выкл.",
 
     MINIMAP_LEFT_CLICK = "Открыть доску",
     MINIMAP_RIGHT_TITLE = "Гильдейские задания",
@@ -67,6 +69,7 @@ local L = {
     CREATE_DEADLINE = "Дедлайн",
     CREATE_SCHEDULED = "Начало",
     CREATE_MAX_PARTICIPANTS = "Макс. участников",
+    CREATE_DATE_PLACEHOLDER = "ГГГГ-ММ-ДД ЧЧ:ММ",
     CREATE_SUBMIT = "Опубликовать",
     CREATE_CANCEL = "Отмена",
 
@@ -92,6 +95,8 @@ local L = {
     SETTINGS_PERSONAL = "Личные",
     SETTINGS_GUILD = "Гильдия",
     SETTINGS_LOCALE = "Язык",
+    LOCALE_EN = "English",
+    LOCALE_RU = "Русский",
     SETTINGS_NOTIFICATIONS = "Уведомления",
     SETTINGS_NOTIFICATION_DURATION = "Длительность (сек)",
     SETTINGS_NOTIFICATION_POSITION = "Позиция",
@@ -106,6 +111,7 @@ local L = {
 
     GUILD_PERMISSIONS = "Права по рангам",
     GUILD_PERM_RANK = "Ранг",
+    GUILD_RANK_FALLBACK = "Ранг %d",
     GUILD_SYNC = "Требования синхронизации",
     GUILD_MIN_CREATE = "Мин. онлайн для создания",
     GUILD_MIN_ACCEPT = "Мин. онлайн для принятия",
