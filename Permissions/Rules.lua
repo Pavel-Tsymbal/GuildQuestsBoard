@@ -113,7 +113,8 @@ function Rules:CanAcceptQuest(playerName, quest)
         end
     end
     local count = Util:CountTable(quest.participants)
-    if count >= (quest.maxParticipants or 1) then
+    local maxP = quest.maxParticipants or 0
+    if maxP > 0 and count >= maxP then
         return false, ns.L["ERR_QUEST_FULL"]
     end
     if quest.participants and quest.participants[playerName or Util:GetPlayerName()] then

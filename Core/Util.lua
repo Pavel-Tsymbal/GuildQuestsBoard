@@ -167,6 +167,13 @@ function Util:FormatGold(amount)
     return string.format("%dc", copper)
 end
 
+function Util:GetParticipantsLimitText(maxParticipants)
+    if not maxParticipants or maxParticipants == 0 then
+        return ns.L["PARTICIPANTS_UNLIMITED"]
+    end
+    return tostring(maxParticipants)
+end
+
 function Util:GetRewardText(quest)
     if not quest then
         return "-"

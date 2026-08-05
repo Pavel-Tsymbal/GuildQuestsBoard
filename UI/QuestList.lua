@@ -83,7 +83,7 @@ function QuestList:Render(parent, quests, onClick)
             cat,
             Util:GetStatusLabel(quest.status),
             pCount,
-            quest.maxParticipants or 1
+            Util:GetParticipantsLimitText(quest.maxParticipants)
         ))
         row.reward:SetText(Util:GetRewardText(quest))
         row.status:SetText(Util:GetStatusLabel(quest.status))

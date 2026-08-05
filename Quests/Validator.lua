@@ -24,8 +24,11 @@ function Validator:ValidateCreate(data)
     if #description > C.DESC_MAX then
         return false, ns.L["ERR_INVALID_DESC"]
     end
-    local maxP = tonumber(data.maxParticipants) or 1
-    if maxP < 1 or maxP > C.MAX_PARTICIPANTS then
+    local maxP = tonumber(data.maxParticipants)
+    if maxP == nil then
+        maxP = 0
+    end
+    if maxP ~= 0 and (maxP < 1 or maxP > C.MAX_PARTICIPANTS) then
         return false, ns.L["ERR_INVALID_PARTICIPANTS"]
     end
     local reward = Util:Trim(data.reward or "")
@@ -78,7 +81,7 @@ function Validator:SanitizeCreate(data)
         timeMode = data.timeMode or C.TIME_MODE.NONE,
         deadline = data.deadline,
         scheduledAt = data.scheduledAt,
-        maxParticipants = tonumber(data.maxParticipants) or 1,
+        maxParticipants = tonumber(data.maxParticipants) or 0,
     }
 end
 

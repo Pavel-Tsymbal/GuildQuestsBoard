@@ -62,7 +62,7 @@ function Schema:NewQuest(data)
         deadline = data.deadline,
         scheduledAt = data.scheduledAt,
         status = data.status or C.STATUS.OPEN,
-        maxParticipants = data.maxParticipants or 1,
+        maxParticipants = data.maxParticipants or 0,
         participants = {},
         createdAt = now,
         updatedAt = now,

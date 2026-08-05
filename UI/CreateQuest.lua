@@ -22,6 +22,13 @@ function CreateQuest:GetTimeValueLabelKey(mode)
     return "CREATE_DEADLINE"
 end
 
+function CreateQuest:GetParticipantsModeLabel(unlimited)
+    if unlimited then
+        return ns.L["PARTICIPANTS_UNLIMITED"]
+    end
+    return ns.L["PARTICIPANTS_LIMITED"]
+end
+
 function CreateQuest:AddLabel(localeKey, offsetY)
     local fs = self.content:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     fs:SetPoint("TOPLEFT", 16, offsetY)
@@ -143,6 +150,9 @@ function CreateQuest:Init()
     y = self:CreateDescriptionField(y)
     y = y - 12
 
+    self.fields.reward = self:AddInput("CREATE_REWARD", y)
+    y = y - 52
+
     self.fields.category = self:AddDropdown("CREATE_CATEGORY", y, 180, function(_, level, menuList)
         for _, cat in ipairs(C.CATEGORIES) do
             local info = UIDropDownMenu_CreateInfo()
@@ -158,8 +168,6 @@ function CreateQuest:Init()
     end)
 
     y = y - 58
-    self.fields.reward = self:AddInput("CREATE_REWARD", y)
-    y = y - 52
 
     self.fields.timeMode = self:AddDropdown("CREATE_TIME_MODE", y, 180, function()
         local modes = {
@@ -189,10 +197,56 @@ function CreateQuest:Init()
         maxParticipantsY = y - 138,
         maxParticipantsCompactY = y - 58,
         contentBottomExpandedY = y - 190,
+        contentBottomExpandedLimitedY = y - 248,
         contentBottomCompactY = y - 110,
+        contentBottomCompactLimitedY = y - 168,
     }
-    self.fields.maxParticipants = self:AddInput("CREATE_MAX_PARTICIPANTS", y - 138)
-    self.fields.maxParticipants:SetText("1")
+
+    self:AddLabel("CREATE_MAX_PARTICIPANTS", y - 138)
+    self.fields.maxParticipantsMode = CreateFrame("Frame", nil, self.content, "UIDropDownMenuTemplate")
+    self.fields.maxParticipantsMode:SetPoint("TOPLEFT", 8, y - 160)
+    UIDropDownMenu_SetWidth(self.fields.maxParticipantsMode, 180)
+    UIDropDownMenu_Initialize(self.fields.maxParticipantsMode, function()
+        local modes = {
+            { unlimited = true },
+            { unlimited = false },
+        }
+        for _, mode in ipairs(modes) do
+            local info = UIDropDownMenu_CreateInfo()
+            local unlimited = mode.unlimited
+            info.text = self:GetParticipantsModeLabel(unlimited)
+            info.value = unlimited
+            info.func = function()
+                self.participantsUnlimited = unlimited
+                UIDropDownMenu_SetText(
+                    self.fields.maxParticipantsMode,
+                    self:GetParticipantsModeLabel(unlimited)
+                )
+                self:UpdateFormLayout()
+            end
+            UIDropDownMenu_AddButton(info)
+        end
+    end)
+
+    self:AddLabel("CREATE_PARTICIPANTS_LIMIT", y - 196)
+    self.labels["CREATE_PARTICIPANTS_LIMIT"]:Hide()
+    self.fields.maxParticipantsLimit = CreateFrame("EditBox", nil, self.content, "InputBoxTemplate")
+    self.fields.maxParticipantsLimit:SetSize(120, 24)
+    self.fields.maxParticipantsLimit:SetPoint("TOPLEFT", 20, y - 214)
+    self.fields.maxParticipantsLimit:SetAutoFocus(false)
+    if self.fields.maxParticipantsLimit.SetNumeric then
+        self.fields.maxParticipantsLimit:SetNumeric(true)
+    end
+    self.fields.maxParticipantsLimit:SetMaxLetters(2)
+    self.fields.maxParticipantsLimit:SetScript("OnTextChanged", function(editBox)
+        local text = editBox:GetText() or ""
+        local digits = text:match("^(%d*)")
+        if digits ~= text then
+            editBox:SetText(digits or "")
+            editBox:SetCursorPosition(string.len(digits or ""))
+        end
+    end)
+    self.fields.maxParticipantsLimit:Hide()
 
     self.submit = CreateFrame("Button", nil, self.frame, "UIPanelButtonTemplate")
     self.submit:SetSize(120, 24)
@@ -206,6 +260,7 @@ function CreateQuest:Init()
 
     self.selectedCategory = "OTHER"
     self.selectedTimeMode = C.TIME_MODE.NONE
+    self.participantsUnlimited = true
 
     self:UpdateTexts()
     self:UpdateTimeValueVisibility()
@@ -279,19 +334,19 @@ function CreateQuest:CreateDescriptionField(y)
     return y - 130
 end
 
-function CreateQuest:SetFieldRow(labelKey, field, offsetY)
+function CreateQuest:SetDropdownRow(labelKey, dropdown, offsetY)
     local label = self.labels[labelKey]
     if label then
         label:ClearAllPoints()
         label:SetPoint("TOPLEFT", 16, offsetY)
     end
-    if field then
-        field:ClearAllPoints()
-        field:SetPoint("TOPLEFT", 20, offsetY - 18)
+    if dropdown then
+        dropdown:ClearAllPoints()
+        dropdown:SetPoint("TOPLEFT", 8, offsetY - 22)
     end
 end
 
-function CreateQuest:UpdateTimeValueVisibility()
+function CreateQuest:UpdateFormLayout()
     local mode = self.selectedTimeMode or C.TIME_MODE.NONE
     local showTimeValue = mode ~= C.TIME_MODE.NONE
     local label = self.labels["CREATE_DEADLINE"]
@@ -316,14 +371,40 @@ function CreateQuest:UpdateTimeValueVisibility()
     end
 
     local maxY = showTimeValue and self.layout.maxParticipantsY or self.layout.maxParticipantsCompactY
-    self:SetFieldRow("CREATE_MAX_PARTICIPANTS", self.fields.maxParticipants, maxY)
+    self:SetDropdownRow("CREATE_MAX_PARTICIPANTS", self.fields.maxParticipantsMode, maxY)
 
-    local contentBottomY = showTimeValue
-        and self.layout.contentBottomExpandedY
-        or self.layout.contentBottomCompactY
-    local height = math.abs(contentBottomY) + 24
-    self.content:SetHeight(height)
+    local limited = not self.participantsUnlimited
+    if self.labels["CREATE_PARTICIPANTS_LIMIT"] then
+        self.labels["CREATE_PARTICIPANTS_LIMIT"]:SetShown(limited)
+        if limited then
+            self.labels["CREATE_PARTICIPANTS_LIMIT"]:ClearAllPoints()
+            self.labels["CREATE_PARTICIPANTS_LIMIT"]:SetPoint("TOPLEFT", 16, maxY - 58)
+        end
+    end
+    if self.fields.maxParticipantsLimit then
+        self.fields.maxParticipantsLimit:SetShown(limited)
+        if limited then
+            self.fields.maxParticipantsLimit:ClearAllPoints()
+            self.fields.maxParticipantsLimit:SetPoint("TOPLEFT", 20, maxY - 76)
+        end
+    end
+
+    local contentBottomY
+    if showTimeValue then
+        contentBottomY = limited
+            and self.layout.contentBottomExpandedLimitedY
+            or self.layout.contentBottomExpandedY
+    else
+        contentBottomY = limited
+            and self.layout.contentBottomCompactLimitedY
+            or self.layout.contentBottomCompactY
+    end
+    self.content:SetHeight(math.abs(contentBottomY) + 24)
     self.scroll:UpdateScrollChildRect()
+end
+
+function CreateQuest:UpdateTimeValueVisibility()
+    self:UpdateFormLayout()
 end
 
 function CreateQuest:UpdateTimeValueLabel()
@@ -353,17 +434,28 @@ function CreateQuest:UpdateTexts()
     if self.selectedTimeMode then
         UIDropDownMenu_SetText(self.fields.timeMode, self:GetTimeModeLabel(self.selectedTimeMode))
     end
+    if self.fields.maxParticipantsMode then
+        UIDropDownMenu_SetText(
+            self.fields.maxParticipantsMode,
+            self:GetParticipantsModeLabel(self.participantsUnlimited ~= false)
+        )
+    end
 end
 
 function CreateQuest:Reset()
     self.fields.title:SetText("")
     self.fields.desc:SetText("")
     self.fields.reward:SetText("")
-    self.fields.maxParticipants:SetText("1")
+    self.participantsUnlimited = true
+    self.fields.maxParticipantsLimit:SetText("5")
     self.selectedCategory = "OTHER"
     self.selectedTimeMode = C.TIME_MODE.NONE
     UIDropDownMenu_SetText(self.fields.category, Util:GetCategoryLabel("OTHER"))
     UIDropDownMenu_SetText(self.fields.timeMode, self:GetTimeModeLabel(C.TIME_MODE.NONE))
+    UIDropDownMenu_SetText(
+        self.fields.maxParticipantsMode,
+        self:GetParticipantsModeLabel(true)
+    )
     ns.DateTimePicker:SetDefault(self.dateTimePicker)
     self.dateTimePicker.refresh()
     self:UpdateTimeValueVisibility()
@@ -388,13 +480,18 @@ function CreateQuest:Submit()
     self.fields.desc:ClearFocus()
     self.fields.title:ClearFocus()
 
+    local maxParticipants = 0
+    if not self.participantsUnlimited then
+        maxParticipants = tonumber(self.fields.maxParticipantsLimit:GetText()) or 0
+    end
+
     local data = {
         title = self.fields.title:GetText() or "",
         description = self.fields.desc:GetText() or "",
         category = self.selectedCategory,
         reward = Util:Trim(self.fields.reward:GetText() or ""),
         timeMode = self.selectedTimeMode,
-        maxParticipants = tonumber(self.fields.maxParticipants:GetText()) or 1,
+        maxParticipants = maxParticipants,
         itemRewards = {},
     }
     local ts = ns.DateTimePicker:GetTimestamp(self.dateTimePicker)
