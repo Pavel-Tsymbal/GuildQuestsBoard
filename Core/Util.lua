@@ -82,6 +82,9 @@ function Util:GetQuestStatusForPlayer(quest, playerName)
         if participant and participant.status then
             return self:GetParticipantStatusLabel(participant.status)
         end
+        if self:IsMultiParticipantQuest(quest) then
+            return self:GetStatusLabel(C.STATUS.OPEN)
+        end
     end
     return self:GetStatusLabel(quest.status)
 end
@@ -221,6 +224,17 @@ function Util:UsesApprovalWorkflow(quest)
     end
     local maxP = quest.maxParticipants or 0
     return maxP == 1
+end
+
+function Util:IsMultiParticipantQuest(quest)
+    if not quest then
+        return false
+    end
+    if quest.category == "PERMANENT" then
+        return true
+    end
+    local maxP = quest.maxParticipants or 0
+    return maxP ~= 1
 end
 
 function Util:GetRewardText(quest)

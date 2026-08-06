@@ -104,6 +104,17 @@ function Validator:ValidateEvent(quest, eventType)
             or quest.status == C.STATUS.GROUP_FORMING
             or quest.status == C.STATUS.CLAIMED
     end
+    if Util:IsMultiParticipantQuest(quest) then
+        if eventType == C.EVENT.QUEST_CLAIMED or eventType == C.EVENT.QUEST_STARTED then
+            return quest.status == C.STATUS.OPEN
+                or quest.status == C.STATUS.GROUP_FORMING
+                or quest.status == C.STATUS.CANCELLED
+                or quest.status == C.STATUS.IN_PROGRESS
+        end
+        if eventType == C.EVENT.QUEST_CANCELLED then
+            return not ns.StateMachine:IsTerminal(quest.status)
+        end
+    end
     return ns.StateMachine:CanTransition(quest, eventType)
         or eventType == C.EVENT.REWARD_PAID
         or eventType == C.EVENT.QUEST_UPDATED

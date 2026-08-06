@@ -56,6 +56,11 @@ function Replicator:ProcessRemoteEvent(event, sender)
         if quest and not ns.StateMachine:CanTransition(quest, event.type) then
             if event.type == C.EVENT.QUEST_SUBMITTED and not Util:UsesApprovalWorkflow(quest) then
                 -- per-participant submit does not change quest status
+            elseif Util:IsMultiParticipantQuest(quest)
+                and (event.type == C.EVENT.QUEST_CLAIMED
+                    or event.type == C.EVENT.QUEST_STARTED
+                    or event.type == C.EVENT.QUEST_CANCELLED) then
+                -- multi-participant quests keep global status OPEN
             elseif event.type ~= C.EVENT.REWARD_PAID then
                 table.insert(self.conflicts, event)
                 return false

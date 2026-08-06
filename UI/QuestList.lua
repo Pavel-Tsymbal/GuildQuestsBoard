@@ -117,6 +117,12 @@ function QuestList:FilterByTab(quests)
         elseif tab == "OPEN" then
             if quest.status == C.STATUS.OPEN or quest.status == C.STATUS.GROUP_FORMING then
                 table.insert(filtered, quest)
+            elseif Util:IsMultiParticipantQuest(quest) then
+                local maxP = quest.maxParticipants or 0
+                local count = Util:CountTable(quest.participants)
+                if maxP == 0 or count < maxP then
+                    table.insert(filtered, quest)
+                end
             end
         elseif tab == "MINE" then
             if quest.creator == player or (quest.participants and quest.participants[player]) then

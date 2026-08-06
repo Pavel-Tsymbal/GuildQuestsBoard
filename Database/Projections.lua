@@ -100,9 +100,11 @@ function Projections:ApplyQuestMutation(event)
             status = C.PARTICIPANT_STATUS.ACCEPTED,
             joinedAt = event.wallTime,
         }
-        local nextStatus = ns.StateMachine:GetNextStatus(quest, event.type)
-        if nextStatus then
-            quest.status = nextStatus
+        if not Util:IsMultiParticipantQuest(quest) then
+            local nextStatus = ns.StateMachine:GetNextStatus(quest, event.type)
+            if nextStatus then
+                quest.status = nextStatus
+            end
         end
         self:AppendHistory(quest, event, C.HISTORY.ACCEPTED, payload.participant)
     elseif event.type == C.EVENT.QUEST_STARTED then
@@ -111,9 +113,11 @@ function Projections:ApplyQuestMutation(event)
         if key then
             quest.participants[key].status = C.PARTICIPANT_STATUS.ACTIVE
         end
-        local nextStatus = ns.StateMachine:GetNextStatus(quest, event.type)
-        if nextStatus then
-            quest.status = nextStatus
+        if not Util:IsMultiParticipantQuest(quest) then
+            local nextStatus = ns.StateMachine:GetNextStatus(quest, event.type)
+            if nextStatus then
+                quest.status = nextStatus
+            end
         end
         self:AppendHistory(quest, event, C.HISTORY.STARTED, name)
     elseif event.type == C.EVENT.QUEST_SUBMITTED then
@@ -144,9 +148,16 @@ function Projections:ApplyQuestMutation(event)
         quest.closedAt = event.wallTime
         self:AppendHistory(quest, event, C.HISTORY.CLOSED)
     elseif event.type == C.EVENT.QUEST_CANCELLED then
-        quest.status = C.STATUS.OPEN
-        quest.participants = {}
-        quest.closedAt = nil
+        if Util:IsMultiParticipantQuest(quest) then
+            local key = Util:FindParticipantKey(quest, event.actor)
+            if key then
+                quest.participants[key] = nil
+            end
+        else
+            quest.status = C.STATUS.OPEN
+            quest.participants = {}
+            quest.closedAt = nil
+        end
         self:AppendHistory(quest, event, C.HISTORY.CANCELLED)
     elseif event.type == C.EVENT.QUEST_EXPIRED then
         quest.status = C.STATUS.EXPIRED

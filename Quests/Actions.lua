@@ -35,7 +35,8 @@ function Actions:Claim(questId)
     if not can then
         return false, err
     end
-    if not ns.StateMachine:CanTransition(quest, C.EVENT.QUEST_CLAIMED) then
+    if not Util:IsMultiParticipantQuest(quest)
+        and not ns.StateMachine:CanTransition(quest, C.EVENT.QUEST_CLAIMED) then
         return false, ns.L["ERR_NO_PERMISSION"]
     end
     local ok, claimErr = self:Emit(C.EVENT.QUEST_CLAIMED, {
@@ -46,8 +47,10 @@ function Actions:Claim(questId)
         return false, claimErr
     end
     quest = ns.Storage:GetQuest(questId)
-    if quest and ns.Rules:CanStart(nil, quest) and ns.StateMachine:CanTransition(quest, C.EVENT.QUEST_STARTED) then
-        return self:Start(questId)
+    if quest and ns.Rules:CanStart(nil, quest) then
+        if Util:IsMultiParticipantQuest(quest) or ns.StateMachine:CanTransition(quest, C.EVENT.QUEST_STARTED) then
+            return self:Start(questId)
+        end
     end
     return true
 end

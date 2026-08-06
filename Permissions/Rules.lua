@@ -107,7 +107,12 @@ function Rules:CanAcceptQuest(playerName, quest)
     if quest.status == C.STATUS.COMPLETED or quest.status == C.STATUS.CLOSED then
         return false, ns.L["ERR_QUEST_TERMINAL"]
     end
-    if not ns.StateMachine:CanTransition(quest, C.EVENT.QUEST_CLAIMED) then
+    local name = playerName or Util:GetPlayerName()
+    if Util:IsMultiParticipantQuest(quest) then
+        if quest.status == C.STATUS.EXPIRED then
+            return false, ns.L["ERR_QUEST_TERMINAL"]
+        end
+    elseif not ns.StateMachine:CanTransition(quest, C.EVENT.QUEST_CLAIMED) then
         return false, ns.L["ERR_NO_PERMISSION"]
     end
     if not self:IsGuildMaster(playerName) then
@@ -126,9 +131,7 @@ function Rules:CanAcceptQuest(playerName, quest)
     if maxP > 0 and count >= maxP then
         return false, ns.L["ERR_QUEST_FULL"]
     end
-    if quest.status ~= C.STATUS.CANCELLED
-        and quest.participants
-        and quest.participants[playerName or Util:GetPlayerName()] then
+    if quest.status ~= C.STATUS.CANCELLED and Util:GetParticipant(quest, name) then
         return false, ns.L["ERR_NO_PERMISSION"]
     end
     return true
@@ -201,18 +204,21 @@ function Rules:CanCancel(playerName, quest)
     if not quest then
         return false
     end
-    if ns.StateMachine:IsTerminal(quest.status) then
-        return false
-    end
-    if not ns.StateMachine:CanTransition(quest, C.EVENT.QUEST_CANCELLED) then
-        return false
-    end
     local name = playerName or Util:GetPlayerName()
     local participant = Util:GetParticipant(quest, name)
     if not participant then
         return false
     end
     if participant.status == C.PARTICIPANT_STATUS.COMPLETED then
+        return false
+    end
+    if Util:IsMultiParticipantQuest(quest) then
+        return true
+    end
+    if ns.StateMachine:IsTerminal(quest.status) then
+        return false
+    end
+    if not ns.StateMachine:CanTransition(quest, C.EVENT.QUEST_CANCELLED) then
         return false
     end
     return true
@@ -253,6 +259,9 @@ function Rules:CanStart(playerName, quest)
     local status = participant.status
     if status == C.PARTICIPANT_STATUS.COMPLETED or status == C.PARTICIPANT_STATUS.SUBMITTED then
         return false
+    end
+    if Util:IsMultiParticipantQuest(quest) then
+        return status == C.PARTICIPANT_STATUS.ACCEPTED
     end
     if not ns.StateMachine:CanTransition(quest, C.EVENT.QUEST_STARTED) then
         return false
