@@ -34,7 +34,8 @@ function Replicator:ProcessLocalEvent(event)
     return self:ApplyEvent(event, true)
 end
 
-function Replicator:ProcessRemoteEvent(event, sender)
+function Replicator:ProcessRemoteEvent(event, sender, options)
+    options = options or {}
     if not event or not event.id then
         return false
     end
@@ -45,7 +46,12 @@ function Replicator:ProcessRemoteEvent(event, sender)
         return false
     end
     if event.type == C.EVENT.SETTINGS_UPDATED then
-        if not ns.GuildRank:IsGuildMaster(sender) and event.actor ~= sender then
+        local actor = event.actor or sender
+        if ns.GuildRank:IsGuildMaster(sender) then
+            -- live broadcast or catch-up directly from GM
+        elseif options.allowRelayedSettings and ns.GuildRank:IsGuildMaster(actor) then
+            -- catch-up relay of a GM-authored settings event
+        else
             return false
         end
     end

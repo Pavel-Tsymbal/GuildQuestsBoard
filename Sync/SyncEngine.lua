@@ -105,7 +105,7 @@ function SyncEngine:HandleEventResponse(payload, sender)
     end
     table.sort(events, Util.CompareEventOrder)
     for _, event in ipairs(events) do
-        ns.Replicator:ProcessRemoteEvent(event, sender)
+        ns.Replicator:ProcessRemoteEvent(event, sender, { allowRelayedSettings = true })
     end
     ns.GQ:Fire("SyncComplete")
 end
@@ -117,13 +117,34 @@ function SyncEngine:HandleStateHash(sender, payload)
     end
 end
 
+function SyncEngine:HasSettingsEvent()
+    local store = ns.Storage:GetGuildStore()
+    if not store then
+        return false
+    end
+    for _, event in ipairs(store.events) do
+        if event.type == C.EVENT.SETTINGS_UPDATED then
+            return true
+        end
+    end
+    return false
+end
+
+function SyncEngine:GetCatchUpSinceLamport()
+    local since = ns.Storage:GetMaxEventLamport()
+    if since > 0 and not self:HasSettingsEvent() then
+        return 0
+    end
+    return since
+end
+
 function SyncEngine:OnHashMismatch(sender)
     if self.catchUpTimer then
         ns.GQ:CancelTimer(self.catchUpTimer)
     end
     self.lastCatchUpTarget = sender
     self.catchUpTimer = ns.GQ:ScheduleTimer(function()
-        ns.Transport:RequestEvents(sender, ns.Storage:GetMaxEventLamport())
+        ns.Transport:RequestEvents(sender, SyncEngine:GetCatchUpSinceLamport())
     end, 1 + math.random() * 2)
 end
 
@@ -131,7 +152,7 @@ function SyncEngine:RequestCatchUp(verbose)
     if not IsInGuild() then
         return
     end
-    local since = ns.Storage:GetMaxEventLamport()
+    local since = self:GetCatchUpSinceLamport()
     local localHash = ns.Storage:GetStateHash()
     local bestPeer = nil
     for name, peer in pairs(ns.Heartbeat:GetPeers()) do
