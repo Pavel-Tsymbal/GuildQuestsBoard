@@ -57,7 +57,7 @@ function Minimap:ShowContextMenu()
     local menu = CreateFrame("Frame", "GuildQuestsMinimapMenu", UIParent, "UIDropDownMenuTemplate")
     local function initialize(_, level)
         local info = UIDropDownMenu_CreateInfo()
-        local canCreate = ns.Rules:HasRankPermission(nil, "create")
+        local canCreate = ns.Rules:CanCreateQuest()
         info.text = ns.L["MINIMAP_CREATE"]
         info.notCheckable = true
         info.disabled = not canCreate

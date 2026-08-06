@@ -47,6 +47,8 @@ function Heartbeat:RegisterPeer(name, version, lamport, stateHash)
         return
     end
     name = Util:GetShortPlayerName(name)
+    local hadPeer = self.peers[name] ~= nil
+    local wasCompatible = hadPeer and self.peers[name].compatible
     self.peers[name] = {
         name = name,
         addonVersion = version,
@@ -55,6 +57,10 @@ function Heartbeat:RegisterPeer(name, version, lamport, stateHash)
         stateHash = stateHash,
         compatible = Util:VersionsCompatible(version),
     }
+    local compatibleCount = self:GetOnlineAddonCount()
+    if not hadPeer or wasCompatible ~= self.peers[name].compatible then
+        ns.GQ:Fire("PeersUpdated", compatibleCount)
+    end
 end
 
 function Heartbeat:HandleHeartbeat(sender, data)
@@ -73,11 +79,20 @@ end
 
 function Heartbeat:PrunePeers()
     local now = Util:Now()
+    local changed = false
     for name, peer in pairs(self.peers) do
         if now - peer.lastHeartbeat > C.HEARTBEAT_TIMEOUT then
             self.peers[name] = nil
+            changed = true
         end
     end
+    if changed then
+        ns.GQ:Fire("PeersUpdated", self:GetOnlineAddonCount())
+    end
+end
+
+function Heartbeat:BroadcastNow()
+    self:Tick()
 end
 
 function Heartbeat:GetOnlineAddonCount()

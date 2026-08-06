@@ -170,6 +170,12 @@ local L = {
     HISTORY_UPDATED = "Updated",
 
     TOOLTIP_GUILD_MIN_CREATE = "This addon shares quests directly between guild members — there is no central server.\n\nIf too few addon users are online, a new quest may not reach everyone else.\n\nThis setting: how many guild members with the addon must be online before anyone can create a quest.\n\nExample: set to 2 — you and at least one other guildmate with the addon must be online.\n\nRecommended: 2 for reliable sync. Use 1 for solo testing. The Guild Master can always create.",
+    TOOLTIP_CREATE_DISABLED_TITLE = "Quest creation unavailable",
+    TOOLTIP_CREATE_DISABLED_NO_PERM = "Your guild rank does not have the Create permission.",
+    TOOLTIP_CREATE_DISABLED_RANK = "Your rank: %s",
+    TOOLTIP_CREATE_DISABLED_RANK_UNKNOWN = "Guild rank is not loaded yet — try again in a few seconds.",
+    TOOLTIP_CREATE_DISABLED_QUORUM = "Addon users online: %d of %d required.",
+    TOOLTIP_CREATE_DISABLED_WAIT = "If your rank has permission, wait 5–10 seconds while the addon finds other guildmates with Guild Quests Board.",
     TOOLTIP_GUILD_MIN_ACCEPT = "When someone accepts a quest, the addon tells other guild members.\n\nIf too few addon users are online, the accept may not sync — others won't see that you joined.\n\nThis setting: how many guild members with the addon must be online before anyone can accept a quest.\n\nExample: set to 2 — at least two addon users must be online.\n\nRecommended: 2 for reliable sync. Use 1 for solo testing. The Guild Master can always accept.",
     TOOLTIP_GUILD_PERM_CREATE = "What: Allows this guild rank to post new quests.\n\nWhy: Control who can add jobs to the board.\n\nRecommended: Enable for trusted ranks.\n\nExample: Enable for Officers and veterans.\n\nConsequence: Disabled ranks cannot create quests (Guild Master always can).",
     TOOLTIP_GUILD_PERM_APPROVE = "What: Allows this rank to approve submitted quests.\n\nWhy: Officers usually verify completion before rewards.\n\nRecommended: Officers only.\n\nExample: Enable for rank 1–2.\n\nConsequence: Without this, only the creator or GM can approve.",

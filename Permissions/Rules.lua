@@ -13,6 +13,18 @@ function Rules:IsPermissionEnabled(value)
     return value == true or value == 1
 end
 
+function Rules:NormalizeRankPermissions(rankIndex, perms)
+    local defaults = self:GetDefaultRankPermissions(rankIndex)
+    if not perms then
+        return defaults
+    end
+    local merged = Util:CopyTable(defaults)
+    for key, value in pairs(perms) do
+        merged[key] = value
+    end
+    return merged
+end
+
 function Rules:GetDefaultRankPermissions(rankIndex)
     local defaults = ns.Schema:DefaultGuildSettings()
     local perms = defaults.permissions.ranks[rankIndex]
@@ -29,15 +41,14 @@ function Rules:GetDefaultRankPermissions(rankIndex)
 end
 
 function Rules:GetRankPermissions(rankIndex)
+    rankIndex = tonumber(rankIndex)
+    if rankIndex == nil then
+        return self:GetDefaultRankPermissions(0)
+    end
     local settings = self:GetSettings()
     local ranks = settings.permissions and settings.permissions.ranks
-    if ranks then
-        local perms = ranks[rankIndex] or ranks[tostring(rankIndex)]
-        if perms then
-            return perms
-        end
-    end
-    return self:GetDefaultRankPermissions(rankIndex)
+    local perms = ranks and (ranks[rankIndex] or ranks[tostring(rankIndex)])
+    return self:NormalizeRankPermissions(rankIndex, perms)
 end
 
 function Rules:IsGuildMaster(playerName)
@@ -101,6 +112,40 @@ function Rules:CanCreateQuest(playerName)
         end
     end
     return true
+end
+
+function Rules:GetCreateQuestDisabledTooltipLines(playerName)
+    if self:CanCreateQuest(playerName) then
+        return nil
+    end
+    local lines = { ns.L["TOOLTIP_CREATE_DISABLED_TITLE"] }
+    if not Util:GetGuildKey() then
+        table.insert(lines, ns.L["ERR_NOT_IN_GUILD"])
+        return lines
+    end
+    if not self:HasRankPermission(playerName, "create") then
+        table.insert(lines, ns.L["TOOLTIP_CREATE_DISABLED_NO_PERM"])
+        local rankIndex = ns.GuildRank:GetRankIndex(playerName)
+        if rankIndex == nil then
+            table.insert(lines, ns.L["TOOLTIP_CREATE_DISABLED_RANK_UNKNOWN"])
+        else
+            table.insert(lines, string.format(
+                ns.L["TOOLTIP_CREATE_DISABLED_RANK"],
+                ns.GuildRank:GetRankName(rankIndex)
+            ))
+        end
+        return lines
+    end
+    if not self:IsGuildMaster(playerName) then
+        local settings = self:GetSettings()
+        local required = settings.sync.minOnlineToCreate or 1
+        local online = ns.Heartbeat and ns.Heartbeat:GetOnlineAddonCount() or 1
+        if online < required then
+            table.insert(lines, string.format(ns.L["TOOLTIP_CREATE_DISABLED_QUORUM"], online, required))
+            table.insert(lines, ns.L["TOOLTIP_CREATE_DISABLED_WAIT"])
+        end
+    end
+    return lines
 end
 
 function Rules:CanAcceptQuest(playerName, quest)

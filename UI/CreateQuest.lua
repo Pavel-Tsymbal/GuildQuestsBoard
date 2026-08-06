@@ -595,6 +595,11 @@ function CreateQuest:Show()
         ns.GQ:Print(ns.L["ERR_NOT_IN_GUILD"])
         return
     end
+    local canCreate, err = ns.Rules:CanCreateQuest()
+    if not canCreate then
+        ns.GQ:Print(err or ns.L["ERR_NO_PERMISSION"])
+        return
+    end
     self:UpdateTexts()
     self:Reset()
     self.scroll:SetVerticalScroll(0)

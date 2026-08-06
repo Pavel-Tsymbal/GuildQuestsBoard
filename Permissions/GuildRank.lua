@@ -37,8 +37,9 @@ function GuildRank:RebuildCache()
         local name, _, rankIndex = GetGuildRosterInfo(i)
         if name then
             local short = Util:GetShortPlayerName(name)
-            self.cache[short] = rankIndex
-            self.cache[name] = rankIndex
+            local normalizedRank = self:NormalizeRankIndex(rankIndex)
+            self.cache[short] = normalizedRank
+            self.cache[name] = normalizedRank
         end
     end
 end
@@ -51,17 +52,25 @@ function GuildRank:IsLocalPlayer(playerName)
     return playerName == localName or Util:GetShortPlayerName(playerName) == localName
 end
 
+function GuildRank:NormalizeRankIndex(rankIndex)
+    if rankIndex == nil then
+        return nil
+    end
+    return tonumber(rankIndex)
+end
+
 function GuildRank:GetLocalPlayerRankIndex()
     if IsGuildLeader("player") then
         return 0
     end
     local _, _, rankIndex = GetGuildInfo("player")
+    rankIndex = self:NormalizeRankIndex(rankIndex)
     if rankIndex ~= nil then
         return rankIndex
     end
     local short = Util:GetShortPlayerName(Util:GetPlayerName())
     if self.cache[short] ~= nil then
-        return self.cache[short]
+        return self:NormalizeRankIndex(self.cache[short])
     end
     return nil
 end
@@ -78,13 +87,13 @@ function GuildRank:GetRankIndex(playerName)
     end
     local short = Util:GetShortPlayerName(playerName)
     if self.cache[playerName] ~= nil then
-        return self.cache[playerName]
+        return self:NormalizeRankIndex(self.cache[playerName])
     end
     if self.cache[short] ~= nil then
-        return self.cache[short]
+        return self:NormalizeRankIndex(self.cache[short])
     end
     self:Refresh()
-    return self.cache[short]
+    return self:NormalizeRankIndex(self.cache[short])
 end
 
 function GuildRank:GetNumRanks()

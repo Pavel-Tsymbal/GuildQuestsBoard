@@ -71,10 +71,14 @@ function MainUI:Init()
     end
 
     self.frameCreate:SetScript("OnClick", function()
-        if ns.Rules:HasRankPermission(nil, "create") then
+        local canCreate, err = ns.Rules:CanCreateQuest()
+        if canCreate then
             ns.CreateQuest:Show()
+        elseif err then
+            ns.GQ:Print(err)
         end
     end)
+    self:SetupCreateButtonTooltip()
     self.frameClose:SetScript("OnClick", function()
         self:Hide()
     end)
@@ -114,6 +118,9 @@ function MainUI:Init()
     ns.GQ:RegisterCallback("GuildRosterUpdated", function()
         self:UpdateCreateButtonState()
     end)
+    ns.GQ:RegisterCallback("PeersUpdated", function()
+        self:UpdateCreateButtonState()
+    end)
     ns.GQ:RegisterEvent("GUILD_ROSTER_UPDATE", function()
         self:UpdateCreateButtonState()
     end)
@@ -123,11 +130,51 @@ function MainUI:Init()
     self:UpdateCreateButtonState()
 end
 
+function MainUI:SetupCreateButtonTooltip()
+    local btn = self.frameCreate
+    if not btn then
+        return
+    end
+    local overlay = CreateFrame("Frame", btn:GetName() .. "TooltipOverlay", btn)
+    overlay:SetAllPoints(btn)
+    overlay:EnableMouse(true)
+    overlay:Hide()
+    self.frameCreateTooltipOverlay = overlay
+
+    overlay:SetScript("OnEnter", function()
+        local lines = ns.Rules:GetCreateQuestDisabledTooltipLines()
+        if not lines then
+            return
+        end
+        GameTooltip:SetOwner(overlay, "ANCHOR_BOTTOMRIGHT")
+        GameTooltip:ClearLines()
+        for index, line in ipairs(lines) do
+            if index == 1 then
+                GameTooltip:AddLine(line, 1, 0.82, 0, true)
+            else
+                GameTooltip:AddLine(line, 1, 1, 1, true)
+            end
+        end
+        GameTooltip:Show()
+    end)
+    overlay:SetScript("OnLeave", function()
+        GameTooltip:Hide()
+    end)
+end
+
 function MainUI:UpdateCreateButtonState()
     if not self.frameCreate then
         return
     end
-    self.frameCreate:SetEnabled(ns.Rules:HasRankPermission(nil, "create"))
+    local canCreate = ns.Rules:CanCreateQuest()
+    self.frameCreate:SetEnabled(canCreate)
+    if self.frameCreateTooltipOverlay then
+        if canCreate then
+            self.frameCreateTooltipOverlay:Hide()
+        else
+            self.frameCreateTooltipOverlay:Show()
+        end
+    end
 end
 
 function MainUI:IsSettingsView()
@@ -209,6 +256,7 @@ function MainUI:Show()
         return
     end
     ns.Storage:EnsureGuildStore()
+    ns.Heartbeat:BroadcastNow()
     self:UpdateCreateButtonState()
     self.frame:Show()
     if self.activeView == "settings" then

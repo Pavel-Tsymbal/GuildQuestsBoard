@@ -26,11 +26,17 @@ function SyncEngine:Init()
 end
 
 function SyncEngine:OnGuildReady()
+    ns.Heartbeat:BroadcastNow()
+    C_Timer.After(2, function()
+        ns.Heartbeat:BroadcastNow()
+    end)
+    C_Timer.After(5, function()
+        ns.Heartbeat:BroadcastNow()
+    end)
     C_Timer.After(C.SYNC_CATCHUP_DELAY, function()
         self:RequestCatchUp(false)
         ns.Transport:SendStateHash(ns.Storage:GetStateHash(), ns.Storage:GetLogicalClock())
     end)
-    ns.Heartbeat:Tick()
 end
 
 function SyncEngine:OnGuildChange()
@@ -185,6 +191,11 @@ function SyncEngine:PrintDebug()
     if peerCount == 0 then
         gq:Print("Peers: none (guild addon messages not received yet)")
     end
+    gq:Print(string.format(
+        "Online with addon (compatible): %d (quorum create: %d)",
+        ns.Heartbeat:GetOnlineAddonCount(),
+        (ns.Storage:GetSettings() or ns.Schema:DefaultGuildSettings()).sync.minOnlineToCreate or 2
+    ))
     local sample = { type = C.EVENT.QUEST_CREATED, id = "debug-test", payload = { id = "debug-test", title = "Test" } }
     local encoded = ns.Codec:EncodeEvent(sample)
     local decoded = encoded and ns.Codec:DecodeEvent(encoded)
