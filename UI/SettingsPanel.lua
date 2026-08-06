@@ -3,12 +3,14 @@ local _, ns = ...
 local SettingsPanel = {}
 ns.SettingsPanel = SettingsPanel
 
+SettingsPanel.PAD_LEFT = 16
+
 function SettingsPanel:Init(container)
     self.container = container
 
     self.tabPersonal = CreateFrame("Button", nil, container, "UIPanelButtonTemplate")
     self.tabPersonal:SetSize(120, 24)
-    self.tabPersonal:SetPoint("TOPLEFT", 0, 0)
+    self.tabPersonal:SetPoint("TOPLEFT", self.PAD_LEFT, 0)
     self.tabPersonal:SetText(ns.L["SETTINGS_PERSONAL"])
     self.tabPersonal:SetScript("OnClick", function()
         self:ShowPersonal()
@@ -23,7 +25,7 @@ function SettingsPanel:Init(container)
     end)
 
     self.content = CreateFrame("Frame", nil, container)
-    self.content:SetPoint("TOPLEFT", 0, -32)
+    self.content:SetPoint("TOPLEFT", self.PAD_LEFT, -32)
     self.content:SetPoint("BOTTOMRIGHT", 0, 0)
 
     ns.GQ:RegisterCallback("LocaleChanged", function()

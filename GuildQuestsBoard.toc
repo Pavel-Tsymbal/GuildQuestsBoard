@@ -47,6 +47,7 @@ Notifications\Queue.lua
 Notifications\Toast.lua
 
 UI\MainFrame.xml
+UI\Theme.lua
 UI\MainFrame.lua
 UI\QuestList.lua
 UI\QuestDetail.lua

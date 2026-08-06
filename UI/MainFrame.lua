@@ -15,6 +15,8 @@ function MainUI:Init()
     self.scrollChild = self.scrollFrame and self.scrollFrame:GetScrollChild()
     self.activeView = "board"
 
+    ns.Theme:ApplyPanel(self.frame)
+
     self.frameEmpty = self.frame:CreateFontString("GuildQuestsMainFrameEmptyText", "OVERLAY", "GameFontDisable")
     self.frameEmpty:SetPoint("CENTER", self.scrollFrame, "CENTER")
     self.frameEmpty:Hide()

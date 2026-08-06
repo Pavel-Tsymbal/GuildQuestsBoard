@@ -143,12 +143,7 @@ function CreateQuest:Init()
     self.frame:SetPoint("CENTER")
     self.frame:SetFrameStrata("FULLSCREEN_DIALOG")
     self.frame:Hide()
-    self.frame:SetBackdrop({
-        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-        edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
-        tile = true, tileSize = 32, edgeSize = 16,
-        insets = { left = 6, right = 6, top = 6, bottom = 6 },
-    })
+    ns.Theme:ApplyPanel(self.frame)
     self.frame:EnableMouse(true)
 
     local close = CreateFrame("Button", nil, self.frame, "UIPanelCloseButton")
