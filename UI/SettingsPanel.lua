@@ -44,6 +44,16 @@ function SettingsPanel:Init(container)
     end)
 end
 
+function SettingsPanel:UpdateTabHighlight()
+    if self.activeTab == "guild" then
+        self.tabGuild:SetEnabled(false)
+        self.tabPersonal:SetEnabled(true)
+    else
+        self.tabPersonal:SetEnabled(false)
+        self.tabGuild:SetEnabled(true)
+    end
+end
+
 function SettingsPanel:ClearContent()
     local children = { self.content:GetChildren() }
     for _, child in ipairs(children) do
@@ -92,6 +102,7 @@ end
 
 function SettingsPanel:ShowPersonal()
     self.activeTab = "personal"
+    self:UpdateTabHighlight()
     self:ClearContent()
     local panel = CreateFrame("Frame", nil, self.content)
     panel:SetAllPoints()
@@ -129,7 +140,7 @@ function SettingsPanel:ShowPersonal()
     local enBtn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
     enBtn:SetSize(80, 22)
     enBtn:SetPoint("TOPLEFT", 0, y - 22)
-    enBtn:SetText("English")
+    enBtn:SetText(ns.L["LOCALE_EN"])
     enBtn:SetScript("OnClick", function()
         ns.PersonalSettings:SetLocale("enUS")
         self:ShowPersonal()
@@ -138,7 +149,7 @@ function SettingsPanel:ShowPersonal()
     local ruBtn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
     ruBtn:SetSize(80, 22)
     ruBtn:SetPoint("LEFT", enBtn, "RIGHT", 8, 0)
-    ruBtn:SetText("Русский")
+    ruBtn:SetText(ns.L["LOCALE_RU"])
     ruBtn:SetScript("OnClick", function()
         ns.PersonalSettings:SetLocale("ruRU")
         self:ShowPersonal()
@@ -147,6 +158,7 @@ end
 
 function SettingsPanel:ShowGuild()
     self.activeTab = "guild"
+    self:UpdateTabHighlight()
     self:ClearContent()
     local panel = CreateFrame("Frame", nil, self.content)
     panel:SetAllPoints()
@@ -156,7 +168,7 @@ function SettingsPanel:ShowGuild()
     if not ns.GuildSettings:CanEdit() then
         local ro = panel:CreateFontString(nil, "OVERLAY", "GameFontDisable")
         ro:SetPoint("TOPLEFT", 0, 0)
-        ro:SetWidth(640)
+        ro:SetWidth(760)
         ro:SetText(ns.L["GUILD_READONLY"])
         self:RenderGuildReadOnly(panel, -28)
         return
@@ -169,7 +181,7 @@ function SettingsPanel:RenderGuildReadOnly(panel, y)
     local settings = ns.GuildSettings:Get()
     local fs = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     fs:SetPoint("TOPLEFT", 0, y)
-    fs:SetWidth(640)
+    fs:SetWidth(760)
     fs:SetJustifyH("LEFT")
     fs:SetText(string.format(
         "%s: create=%d accept=%d",

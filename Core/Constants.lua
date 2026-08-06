@@ -18,6 +18,7 @@ ns.Constants = {
     TITLE_MAX = 80,
     DESC_MAX = 500,
     TAG_MAX = 40,
+    REWARD_MAX = 80,
     MAX_PARTICIPANTS = 40,
     MAX_ITEM_REWARDS = 5,
 
@@ -43,9 +44,11 @@ ns.Constants = {
         ACCEPTED = "ACCEPTED",
         ACTIVE = "ACTIVE",
         SUBMITTED = "SUBMITTED",
+        COMPLETED = "COMPLETED",
     },
 
     CATEGORIES = {
+        "PERMANENT",
         "DUNGEON",
         "FARMING",
         "CRAFTING",

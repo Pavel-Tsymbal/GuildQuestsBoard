@@ -20,16 +20,24 @@ function MainUI:Init()
     self.frameEmpty:Hide()
 
     self.tabBoard = CreateFrame("Button", nil, self.frame, "UIPanelButtonTemplate")
-    self.tabBoard:SetSize(100, 22)
-    self.tabBoard:SetPoint("TOPLEFT", 220, -12)
+    self.tabBoard:SetSize(110, 22)
+    self.tabBoard:SetPoint("TOPLEFT", 300, -12)
     self.tabBoard:SetText(ns.L["MAIN_TAB_BOARD"])
     self.tabBoard:SetScript("OnClick", function()
         self:ShowBoardView()
     end)
 
+    self.tabAchievements = CreateFrame("Button", nil, self.frame, "UIPanelButtonTemplate")
+    self.tabAchievements:SetSize(110, 22)
+    self.tabAchievements:SetPoint("LEFT", self.tabBoard, "RIGHT", 8, 0)
+    self.tabAchievements:SetText(ns.L["MAIN_TAB_ACHIEVEMENTS"])
+    self.tabAchievements:SetScript("OnClick", function()
+        self:ShowAchievementsView()
+    end)
+
     self.tabSettings = CreateFrame("Button", nil, self.frame, "UIPanelButtonTemplate")
-    self.tabSettings:SetSize(100, 22)
-    self.tabSettings:SetPoint("LEFT", self.tabBoard, "RIGHT", 8, 0)
+    self.tabSettings:SetSize(110, 22)
+    self.tabSettings:SetPoint("LEFT", self.tabAchievements, "RIGHT", 8, 0)
     self.tabSettings:SetText(ns.L["MAIN_TAB_SETTINGS"])
     self.tabSettings:SetScript("OnClick", function()
         self:ShowSettingsView()
@@ -37,7 +45,7 @@ function MainUI:Init()
 
     self.settingsView = CreateFrame("Frame", nil, self.frame)
     self.settingsView:SetPoint("TOPLEFT", 12, -104)
-    self.settingsView:SetSize(680, 460)
+    self.settingsView:SetSize(800, 460)
     self.settingsView:Hide()
 
     self.settingsScroll = CreateFrame("ScrollFrame", nil, self.settingsView, "UIPanelScrollFrameTemplate")
@@ -45,10 +53,15 @@ function MainUI:Init()
     self.settingsScroll:SetPoint("BOTTOMRIGHT", 0, 0)
 
     self.settingsContainer = CreateFrame("Frame", nil, self.settingsScroll)
-    self.settingsContainer:SetSize(660, 460)
+    self.settingsContainer:SetSize(780, 460)
     self.settingsScroll:SetScrollChild(self.settingsContainer)
 
     ns.SettingsPanel:Init(self.settingsContainer)
+
+    self.achievementsView = CreateFrame("Frame", nil, self.frame)
+    self.achievementsView:SetPoint("TOPLEFT", 12, -104)
+    self.achievementsView:SetSize(800, 460)
+    self.achievementsView:Hide()
 
     self.frameTitle:SetText(ns.L["BOARD_TITLE"])
     self.frameCreate:SetText(ns.L["BOARD_CREATE"])
@@ -99,31 +112,37 @@ function MainUI:IsSettingsView()
     return self.activeView == "settings"
 end
 
+function MainUI:IsAchievementsView()
+    return self.activeView == "achievements"
+end
+
 function MainUI:UpdateTabHighlight()
-    if self.activeView == "settings" then
-        self.tabSettings:SetEnabled(false)
-        self.tabBoard:SetEnabled(true)
-    else
-        self.tabBoard:SetEnabled(false)
-        self.tabSettings:SetEnabled(true)
-    end
+    self.tabBoard:SetEnabled(self.activeView ~= "board")
+    self.tabAchievements:SetEnabled(self.activeView ~= "achievements")
+    self.tabSettings:SetEnabled(self.activeView ~= "settings")
 end
 
 function MainUI:UpdateTexts()
     self.tabBoard:SetText(ns.L["MAIN_TAB_BOARD"])
+    self.tabAchievements:SetText(ns.L["MAIN_TAB_ACHIEVEMENTS"])
     self.tabSettings:SetText(ns.L["MAIN_TAB_SETTINGS"])
     self.frameCreate:SetText(ns.L["BOARD_CREATE"])
     self.frameEmpty:SetText(ns.L["BOARD_EMPTY"])
+    if self.frameSearch.SetPlaceholderText then
+        self.frameSearch:SetPlaceholderText(ns.L["SEARCH_PLACEHOLDER"])
+    end
     if self.activeView == "board" then
         self.frameTitle:SetText(ns.L["BOARD_TITLE"])
+    elseif self.activeView == "achievements" then
+        self.frameTitle:SetText(ns.L["MAIN_TAB_ACHIEVEMENTS"])
     else
         self.frameTitle:SetText(ns.L["SETTINGS_TITLE"])
     end
 end
 
-function MainUI:SetBoardWidgetsShown(shown)
+function MainUI:SetBoardWidgetsShown(shown, showFilterBar)
     self.frameSearch:SetShown(shown)
-    self.filterBar:SetShown(shown)
+    self.filterBar:SetShown(shown and showFilterBar ~= false)
     self.scrollFrame:SetShown(shown)
     self.frameCreate:SetShown(shown)
     if not shown then
@@ -134,14 +153,25 @@ end
 function MainUI:ShowBoardView()
     self.activeView = "board"
     self.settingsView:Hide()
-    self:SetBoardWidgetsShown(true)
+    self.achievementsView:Hide()
+    self:SetBoardWidgetsShown(true, true)
     self.frameTitle:SetText(ns.L["BOARD_TITLE"])
     self:UpdateTabHighlight()
     self:Refresh()
 end
 
+function MainUI:ShowAchievementsView()
+    self.activeView = "achievements"
+    self.settingsView:Hide()
+    self.achievementsView:Show()
+    self:SetBoardWidgetsShown(false)
+    self.frameTitle:SetText(ns.L["MAIN_TAB_ACHIEVEMENTS"])
+    self:UpdateTabHighlight()
+end
+
 function MainUI:ShowSettingsView()
     self.activeView = "settings"
+    self.achievementsView:Hide()
     self:SetBoardWidgetsShown(false)
     self.settingsView:Show()
     self.frameTitle:SetText(ns.L["SETTINGS_TITLE"])
@@ -158,6 +188,8 @@ function MainUI:Show()
     self.frame:Show()
     if self.activeView == "settings" then
         self:ShowSettingsView()
+    elseif self.activeView == "achievements" then
+        self:ShowAchievementsView()
     else
         self:ShowBoardView()
     end

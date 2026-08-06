@@ -17,6 +17,7 @@ SearchFilter.filters = {
 function SearchFilter:Init()
     self.filters.tab = "ALL"
     self:BuildFilterBar()
+    self:UpdateTabHighlight()
     ns.GQ:RegisterCallback("LocaleChanged", function()
         self:UpdateFilterBarTexts()
     end)
@@ -33,31 +34,23 @@ function SearchFilter:BuildFilterBar()
         { key = "ALL", label = "BOARD_TAB_ALL" },
         { key = "OPEN", label = "BOARD_TAB_OPEN" },
         { key = "MINE", label = "BOARD_TAB_MINE" },
-        { key = "SCHEDULED", label = "BOARD_TAB_SCHEDULED" },
+        { key = "PERMANENT", label = "BOARD_TAB_PERMANENT" },
     }
     for i, tab in ipairs(tabs) do
         local btn = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
-        btn:SetSize(90, 22)
-        btn:SetPoint("LEFT", (i - 1) * 94, 0)
+        btn:SetSize(100, 22)
+        btn:SetPoint("LEFT", (i - 1) * 104, 0)
         btn.tabKey = tab.key
         btn.labelKey = tab.label
         btn:SetText(ns.L[tab.label])
         btn:SetScript("OnClick", function(b)
             self.filters.tab = b.tabKey
             ns.QuestList:SetTab(b.tabKey)
+            self:UpdateTabHighlight()
             ns.MainUI:Refresh()
         end)
         self.tabButtons[i] = btn
     end
-
-    self.clearBtn = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
-    self.clearBtn:SetSize(90, 22)
-    self.clearBtn:SetPoint("RIGHT", parent, "RIGHT", 0, 0)
-    self.clearBtn:SetText(ns.L["FILTER_CLEAR"])
-    self.clearBtn:SetScript("OnClick", function()
-        self:ClearFilters()
-        ns.MainUI:Refresh()
-    end)
 
     local search = GuildQuestsMainFrameSearch
     if search then
@@ -71,6 +64,16 @@ function SearchFilter:BuildFilterBar()
     end
 end
 
+function SearchFilter:UpdateTabHighlight()
+    if not self.tabButtons then
+        return
+    end
+    local activeTab = self.filters.tab or "ALL"
+    for _, btn in ipairs(self.tabButtons) do
+        btn:SetEnabled(btn.tabKey ~= activeTab)
+    end
+end
+
 function SearchFilter:UpdateFilterBarTexts()
     if not self.tabButtons then
         return
@@ -78,17 +81,7 @@ function SearchFilter:UpdateFilterBarTexts()
     for _, btn in ipairs(self.tabButtons) do
         btn:SetText(ns.L[btn.labelKey])
     end
-    if self.clearBtn then
-        self.clearBtn:SetText(ns.L["FILTER_CLEAR"])
-    end
-end
-
-function SearchFilter:ClearFilters()
-    self.filters.category = nil
-    self.filters.status = nil
-    self.filters.minRewardGold = 0
-    self.filters.scheduledOnly = false
-    self.filters.hasDeadline = false
+    self:UpdateTabHighlight()
 end
 
 function SearchFilter:SetCategory(category)
@@ -119,7 +112,7 @@ function SearchFilter:MatchesSearch(quest, searchText)
     local function contains(value)
         return value and value:lower():find(searchText, 1, true)
     end
-    if contains(quest.title) or contains(quest.creator) or contains(quest.categoryTag) then
+    if contains(quest.title) or contains(quest.creator) then
         return true
     end
     for name in pairs(quest.participants or {}) do

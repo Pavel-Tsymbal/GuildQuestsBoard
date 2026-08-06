@@ -77,7 +77,7 @@ function Toast:ShowQuest(quest, onDone)
     self.currentQuestId = quest.id
     self:GetPosition()
     self.title:SetText(ns.L["NOTIFY_NEW_QUEST"])
-    local reward = Util:FormatGold(quest.rewardGold or 0)
+    local reward = Util:GetRewardText(quest)
     local body = quest.title .. "\n" .. ns.L["DETAIL_REWARD"] .. ": " .. reward
     if quest.timeMode == C.TIME_MODE.SCHEDULED and quest.scheduledAt then
         body = body .. "\n" .. ns.L["DETAIL_SCHEDULED"] .. ": " .. date("%Y-%m-%d %H:%M", quest.scheduledAt)

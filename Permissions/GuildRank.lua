@@ -88,9 +88,9 @@ end
 
 function GuildRank:GetRankName(rankIndex)
     if GuildControlGetRankName then
-        return GuildControlGetRankName(rankIndex + 1) or ("Rank " .. rankIndex)
+        return GuildControlGetRankName(rankIndex + 1) or string.format(ns.L["GUILD_RANK_FALLBACK"], rankIndex)
     end
-    return "Rank " .. rankIndex
+    return string.format(ns.L["GUILD_RANK_FALLBACK"], rankIndex)
 end
 
 function GuildRank:IsGuildMaster(playerName)

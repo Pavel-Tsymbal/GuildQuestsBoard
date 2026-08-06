@@ -24,13 +24,16 @@ function Validator:ValidateCreate(data)
     if #description > C.DESC_MAX then
         return false, ns.L["ERR_INVALID_DESC"]
     end
-    local maxP = tonumber(data.maxParticipants) or 1
-    if maxP < 1 or maxP > C.MAX_PARTICIPANTS then
+    local maxP = tonumber(data.maxParticipants)
+    if maxP == nil then
+        maxP = 0
+    end
+    if maxP ~= 0 and (maxP < 1 or maxP > C.MAX_PARTICIPANTS) then
         return false, ns.L["ERR_INVALID_PARTICIPANTS"]
     end
-    local tag = Util:Trim(data.categoryTag or "")
-    if #tag > C.TAG_MAX then
-        return false, ns.L["ERR_INVALID_TITLE"]
+    local reward = Util:Trim(data.reward or "")
+    if #reward > C.REWARD_MAX then
+        return false, ns.L["ERR_INVALID_REWARD"]
     end
     local timeMode = data.timeMode or C.TIME_MODE.NONE
     if timeMode == C.TIME_MODE.DEADLINE and not data.deadline then
@@ -71,13 +74,14 @@ function Validator:SanitizeCreate(data)
         title = Util:Trim(data.title),
         description = Util:Trim(data.description),
         category = data.category or "OTHER",
-        categoryTag = Util:Trim(data.categoryTag or ""),
-        rewardGold = tonumber(data.rewardGold) or 0,
+        categoryTag = "",
+        reward = Util:Trim(data.reward or ""),
+        rewardGold = 0,
         itemRewards = itemRewards,
         timeMode = data.timeMode or C.TIME_MODE.NONE,
         deadline = data.deadline,
         scheduledAt = data.scheduledAt,
-        maxParticipants = tonumber(data.maxParticipants) or 1,
+        maxParticipants = tonumber(data.maxParticipants) or 0,
     }
 end
 
@@ -93,6 +97,12 @@ function Validator:ValidateEvent(quest, eventType)
     end
     if ns.StateMachine:IsTerminal(quest.status) and eventType ~= C.EVENT.QUEST_CREATED then
         return false
+    end
+    if eventType == C.EVENT.QUEST_SUBMITTED and not Util:UsesApprovalWorkflow(quest) then
+        return quest.status == C.STATUS.IN_PROGRESS
+            or quest.status == C.STATUS.OPEN
+            or quest.status == C.STATUS.GROUP_FORMING
+            or quest.status == C.STATUS.CLAIMED
     end
     return ns.StateMachine:CanTransition(quest, eventType)
         or eventType == C.EVENT.REWARD_PAID

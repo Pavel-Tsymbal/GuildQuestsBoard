@@ -54,7 +54,9 @@ function Replicator:ProcessRemoteEvent(event, sender)
         and event.type ~= C.EVENT.SETTINGS_UPDATED
         and event.type ~= C.EVENT.QUEST_DELETED then
         if quest and not ns.StateMachine:CanTransition(quest, event.type) then
-            if event.type ~= C.EVENT.REWARD_PAID then
+            if event.type == C.EVENT.QUEST_SUBMITTED and not Util:UsesApprovalWorkflow(quest) then
+                -- per-participant submit does not change quest status
+            elseif event.type ~= C.EVENT.REWARD_PAID then
                 table.insert(self.conflicts, event)
                 return false
             end

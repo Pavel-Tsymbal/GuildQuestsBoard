@@ -22,7 +22,7 @@ end
 
 function QuestList:CreateRow(parent, index)
     local row = CreateFrame("Button", parent:GetName() .. "Row" .. index, parent, "BackdropTemplate")
-    row:SetSize(640, 44)
+    row:SetSize(760, 44)
     row:SetBackdrop({
         bgFile = "Interface\\Buttons\\WHITE8x8",
         edgeFile = "Interface\\Buttons\\WHITE8x8",
@@ -35,17 +35,17 @@ function QuestList:CreateRow(parent, index)
 
     row.title = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     row.title:SetPoint("LEFT", 10, 6)
-    row.title:SetWidth(280)
+    row.title:SetWidth(320)
     row.title:SetJustifyH("LEFT")
 
     row.meta = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     row.meta:SetPoint("LEFT", 10, -10)
-    row.meta:SetWidth(400)
+    row.meta:SetWidth(480)
     row.meta:SetJustifyH("LEFT")
 
     row.reward = row:CreateFontString(nil, "OVERLAY", "GameFontGreen")
     row.reward:SetPoint("RIGHT", -10, 4)
-    row.reward:SetWidth(120)
+    row.reward:SetWidth(180)
     row.reward:SetJustifyH("RIGHT")
 
     row.status = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
@@ -76,20 +76,17 @@ function QuestList:Render(parent, quests, onClick)
 
         row.title:SetText(quest.title or "?")
         local cat = Util:GetCategoryLabel(quest.category)
-        if quest.categoryTag and quest.categoryTag ~= "" then
-            cat = cat .. " / " .. quest.categoryTag
-        end
         local pCount = Util:CountTable(quest.participants)
         row.meta:SetText(string.format(
             "%s | %s | %s (%d/%d)",
             quest.creator or "?",
             cat,
-            Util:GetStatusLabel(quest.status),
+            Util:GetQuestStatusForPlayer(quest),
             pCount,
-            quest.maxParticipants or 1
+            Util:GetParticipantsLimitText(quest.maxParticipants)
         ))
-        row.reward:SetText(Util:FormatGold(quest.rewardGold or 0))
-        row.status:SetText(Util:GetStatusLabel(quest.status))
+        row.reward:SetText(Util:GetRewardText(quest))
+        row.status:SetText(Util:GetQuestStatusForPlayer(quest))
 
         row:SetScript("OnClick", function()
             if onClick then
@@ -125,8 +122,8 @@ function QuestList:FilterByTab(quests)
             if quest.creator == player or (quest.participants and quest.participants[player]) then
                 table.insert(filtered, quest)
             end
-        elseif tab == "SCHEDULED" then
-            if quest.timeMode == C.TIME_MODE.SCHEDULED then
+        elseif tab == "PERMANENT" then
+            if quest.category == "PERMANENT" then
                 table.insert(filtered, quest)
             end
         end
