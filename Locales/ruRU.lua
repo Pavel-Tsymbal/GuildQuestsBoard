@@ -55,6 +55,11 @@ local L = {
     STATUS_EXPIRED = "Истекло",
     STATUS_CANCELLED = "Отменено",
 
+    PARTICIPANT_ACCEPTED = "Принято",
+    PARTICIPANT_ACTIVE = "В работе",
+    PARTICIPANT_SUBMITTED = "Сдано",
+    PARTICIPANT_COMPLETED = "Выполнено",
+
     TIME_MODE_NONE = "Без ограничения",
     TIME_MODE_DEADLINE = "Дедлайн",
     TIME_MODE_SCHEDULED = "По расписанию",

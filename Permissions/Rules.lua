@@ -104,6 +104,12 @@ function Rules:CanAcceptQuest(playerName, quest)
     if not quest then
         return false
     end
+    if quest.status == C.STATUS.COMPLETED or quest.status == C.STATUS.CLOSED then
+        return false, ns.L["ERR_QUEST_TERMINAL"]
+    end
+    if not ns.StateMachine:CanTransition(quest, C.EVENT.QUEST_CLAIMED) then
+        return false, ns.L["ERR_NO_PERMISSION"]
+    end
     if not self:IsGuildMaster(playerName) then
         local settings = self:GetSettings()
         local required = settings.sync.minOnlineToAccept or 1
@@ -113,11 +119,16 @@ function Rules:CanAcceptQuest(playerName, quest)
         end
     end
     local count = Util:CountTable(quest.participants)
+    if quest.status == C.STATUS.CANCELLED then
+        count = 0
+    end
     local maxP = quest.maxParticipants or 0
     if maxP > 0 and count >= maxP then
         return false, ns.L["ERR_QUEST_FULL"]
     end
-    if quest.participants and quest.participants[playerName or Util:GetPlayerName()] then
+    if quest.status ~= C.STATUS.CANCELLED
+        and quest.participants
+        and quest.participants[playerName or Util:GetPlayerName()] then
         return false, ns.L["ERR_NO_PERMISSION"]
     end
     return true
@@ -125,6 +136,9 @@ end
 
 function Rules:CanApprove(playerName, quest)
     if not quest then
+        return false
+    end
+    if not Util:UsesApprovalWorkflow(quest) then
         return false
     end
     if self:IsGuildMaster(playerName) then
@@ -153,6 +167,15 @@ function Rules:CanMarkRewardPaid(playerName, quest)
     if not quest then
         return false
     end
+    if not Util:UsesApprovalWorkflow(quest) then
+        return false
+    end
+    if self:IsGuildMaster(playerName) then
+        return true
+    end
+    if self:IsQuestCreator(playerName, quest) then
+        return true
+    end
     return self:HasRankPermission(playerName, "rewardPaid")
 end
 
@@ -168,6 +191,9 @@ function Rules:CanDelete(playerName, quest)
     if not quest then
         return false
     end
+    if self:IsQuestCreator(playerName, quest) then
+        return true
+    end
     return self:HasRankPermission(playerName, "delete")
 end
 
@@ -175,23 +201,65 @@ function Rules:CanCancel(playerName, quest)
     if not quest then
         return false
     end
-    if not self:IsQuestCreator(playerName, quest) and not self:IsGuildMaster(playerName) then
-        return false
-    end
     if ns.StateMachine:IsTerminal(quest.status) then
         return false
     end
-    return ns.StateMachine:CanTransition(quest, C.EVENT.QUEST_CANCELLED)
+    if not ns.StateMachine:CanTransition(quest, C.EVENT.QUEST_CANCELLED) then
+        return false
+    end
+    local name = playerName or Util:GetPlayerName()
+    local participant = Util:GetParticipant(quest, name)
+    if not participant then
+        return false
+    end
+    if participant.status == C.PARTICIPANT_STATUS.COMPLETED then
+        return false
+    end
+    return true
 end
 
 function Rules:CanSubmit(playerName, quest)
     if not quest or not quest.participants then
         return false
     end
-    local name = playerName or Util:GetPlayerName()
-    return quest.participants[name] ~= nil
+    local participant = Util:GetParticipant(quest, playerName)
+    if not participant then
+        return false
+    end
+    local status = participant.status
+    if status == C.PARTICIPANT_STATUS.COMPLETED or status == C.PARTICIPANT_STATUS.SUBMITTED then
+        return false
+    end
+    if Util:UsesApprovalWorkflow(quest) then
+        if quest.status == C.STATUS.IN_PROGRESS then
+            return status == C.PARTICIPANT_STATUS.ACTIVE or status == C.PARTICIPANT_STATUS.ACCEPTED
+        end
+        if quest.status == C.STATUS.CLAIMED then
+            return status == C.PARTICIPANT_STATUS.ACCEPTED
+        end
+        return false
+    end
+    return status == C.PARTICIPANT_STATUS.ACTIVE or status == C.PARTICIPANT_STATUS.ACCEPTED
 end
 
 function Rules:CanStart(playerName, quest)
-    return self:CanSubmit(playerName, quest)
+    if not quest or not quest.participants then
+        return false
+    end
+    local participant = Util:GetParticipant(quest, playerName)
+    if not participant then
+        return false
+    end
+    local status = participant.status
+    if status == C.PARTICIPANT_STATUS.COMPLETED or status == C.PARTICIPANT_STATUS.SUBMITTED then
+        return false
+    end
+    if not ns.StateMachine:CanTransition(quest, C.EVENT.QUEST_STARTED) then
+        return false
+    end
+    if Util:UsesApprovalWorkflow(quest) then
+        return status == C.PARTICIPANT_STATUS.ACCEPTED
+            and (quest.status == C.STATUS.CLAIMED or quest.status == C.STATUS.GROUP_FORMING)
+    end
+    return status == C.PARTICIPANT_STATUS.ACCEPTED
 end

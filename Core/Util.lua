@@ -48,6 +48,44 @@ function Util:GetShortPlayerName(fullName)
     return (fullName:match("^([^%-]+)")) or fullName
 end
 
+function Util:FindParticipantKey(quest, playerName)
+    if not quest or not quest.participants then
+        return nil
+    end
+    playerName = playerName or self:GetPlayerName()
+    if quest.participants[playerName] then
+        return playerName
+    end
+    local shortName = self:GetShortPlayerName(playerName)
+    for name in pairs(quest.participants) do
+        if self:GetShortPlayerName(name) == shortName then
+            return name
+        end
+    end
+    return nil
+end
+
+function Util:GetParticipant(quest, playerName)
+    local key = self:FindParticipantKey(quest, playerName)
+    if not key then
+        return nil
+    end
+    return quest.participants[key], key
+end
+
+function Util:GetQuestStatusForPlayer(quest, playerName)
+    if not quest then
+        return "-"
+    end
+    if not self:UsesApprovalWorkflow(quest) then
+        local participant = self:GetParticipant(quest, playerName)
+        if participant and participant.status then
+            return self:GetParticipantStatusLabel(participant.status)
+        end
+    end
+    return self:GetStatusLabel(quest.status)
+end
+
 function Util:GetGuildKey()
     local guildName = GetGuildInfo("player")
     if not guildName or guildName == "" then
@@ -174,6 +212,17 @@ function Util:GetParticipantsLimitText(maxParticipants)
     return tostring(maxParticipants)
 end
 
+function Util:UsesApprovalWorkflow(quest)
+    if not quest then
+        return false
+    end
+    if quest.category == "PERMANENT" then
+        return false
+    end
+    local maxP = quest.maxParticipants or 0
+    return maxP == 1
+end
+
 function Util:GetRewardText(quest)
     if not quest then
         return "-"
@@ -242,4 +291,12 @@ function Util:GetStatusLabel(status)
         return L["STATUS_" .. status] or status
     end
     return status
+end
+
+function Util:GetParticipantStatusLabel(status)
+    local L = ns.L
+    if L and L["PARTICIPANT_" .. status] then
+        return L["PARTICIPANT_" .. status]
+    end
+    return self:GetStatusLabel(status)
 end

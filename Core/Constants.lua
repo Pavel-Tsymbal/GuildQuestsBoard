@@ -44,6 +44,7 @@ ns.Constants = {
         ACCEPTED = "ACCEPTED",
         ACTIVE = "ACTIVE",
         SUBMITTED = "SUBMITTED",
+        COMPLETED = "COMPLETED",
     },
 
     CATEGORIES = {

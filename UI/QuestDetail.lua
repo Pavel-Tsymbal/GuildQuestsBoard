@@ -169,7 +169,7 @@ function QuestDetail:Show(questId)
         ns.L["DETAIL_CREATOR"] .. ": " .. (quest.creator or "?"),
         ns.L["DETAIL_REWARD"] .. ": " .. Util:GetRewardText(quest),
         Util:GetCategoryLabel(quest.category),
-        Util:GetStatusLabel(quest.status),
+        Util:GetQuestStatusForPlayer(quest),
     }
     if quest.deadline then
         table.insert(lines, ns.L["DETAIL_DEADLINE"] .. ": " .. date("%Y-%m-%d %H:%M", quest.deadline))
@@ -182,7 +182,7 @@ function QuestDetail:Show(questId)
 
     local parts = {}
     for name, data in pairs(quest.participants or {}) do
-        table.insert(parts, name .. " (" .. (data.status or "?") .. ")")
+        table.insert(parts, name .. " (" .. Util:GetParticipantStatusLabel(data.status or "?") .. ")")
     end
     self.participants:SetText(ns.L["DETAIL_PARTICIPANTS"] .. ":\n" .. (#parts > 0 and table.concat(parts, "\n") or "-"))
 
@@ -204,24 +204,18 @@ function QuestDetail:Show(questId)
         end)
     end
 
-    if quest.status == C.STATUS.OPEN or quest.status == C.STATUS.GROUP_FORMING then
+    if ns.Rules:CanAcceptQuest(nil, quest) then
         act(ns.L["DETAIL_ACCEPT"], function() return ns.Actions:Claim(questId) end)
     end
-    if ns.Rules:CanStart(nil, quest) and (quest.status == C.STATUS.CLAIMED or quest.status == C.STATUS.GROUP_FORMING) then
-        act(ns.L["DETAIL_START"], function() return ns.Actions:Start(questId) end)
-    end
-    if ns.Rules:CanSubmit(nil, quest) and quest.status == C.STATUS.IN_PROGRESS then
+    if ns.Rules:CanSubmit(nil, quest) then
         act(ns.L["DETAIL_SUBMIT"], function() return ns.Actions:Submit(questId) end)
     end
-    if ns.Rules:CanApprove(nil, quest) and quest.status == C.STATUS.SUBMITTED then
+    if Util:UsesApprovalWorkflow(quest) and ns.Rules:CanApprove(nil, quest) and quest.status == C.STATUS.SUBMITTED then
         act(ns.L["DETAIL_APPROVE"], function() return ns.Actions:Approve(questId) end)
         act(ns.L["DETAIL_REJECT"], function() return ns.Actions:Reject(questId) end)
     end
-    if ns.Rules:CanMarkRewardPaid(nil, quest) and quest.status == C.STATUS.COMPLETED then
+    if Util:UsesApprovalWorkflow(quest) and ns.Rules:CanMarkRewardPaid(nil, quest) and quest.status == C.STATUS.COMPLETED then
         act(ns.L["DETAIL_REWARD_PAID"], function() return ns.Actions:MarkRewardPaid(questId) end)
-    end
-    if ns.Rules:CanClose(nil, quest) then
-        act(ns.L["DETAIL_CLOSE"], function() return ns.Actions:Close(questId) end)
     end
     if ns.Rules:CanCancel(nil, quest) then
         act(ns.L["DETAIL_CANCEL"], function() return ns.Actions:Cancel(questId) end)

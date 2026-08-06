@@ -98,6 +98,12 @@ function Validator:ValidateEvent(quest, eventType)
     if ns.StateMachine:IsTerminal(quest.status) and eventType ~= C.EVENT.QUEST_CREATED then
         return false
     end
+    if eventType == C.EVENT.QUEST_SUBMITTED and not Util:UsesApprovalWorkflow(quest) then
+        return quest.status == C.STATUS.IN_PROGRESS
+            or quest.status == C.STATUS.OPEN
+            or quest.status == C.STATUS.GROUP_FORMING
+            or quest.status == C.STATUS.CLAIMED
+    end
     return ns.StateMachine:CanTransition(quest, eventType)
         or eventType == C.EVENT.REWARD_PAID
         or eventType == C.EVENT.QUEST_UPDATED

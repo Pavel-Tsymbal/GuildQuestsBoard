@@ -38,10 +38,18 @@ function Actions:Claim(questId)
     if not ns.StateMachine:CanTransition(quest, C.EVENT.QUEST_CLAIMED) then
         return false, ns.L["ERR_NO_PERMISSION"]
     end
-    return self:Emit(C.EVENT.QUEST_CLAIMED, {
+    local ok, claimErr = self:Emit(C.EVENT.QUEST_CLAIMED, {
         questId = questId,
         participant = Util:GetPlayerName(),
     })
+    if not ok then
+        return false, claimErr
+    end
+    quest = ns.Storage:GetQuest(questId)
+    if quest and ns.Rules:CanStart(nil, quest) and ns.StateMachine:CanTransition(quest, C.EVENT.QUEST_STARTED) then
+        return self:Start(questId)
+    end
+    return true
 end
 
 function Actions:Start(questId)
@@ -57,6 +65,17 @@ end
 
 function Actions:Submit(questId)
     local quest = ns.Storage:GetQuest(questId)
+    if not quest then
+        return false, ns.L["ERR_NO_PERMISSION"]
+    end
+    if Util:UsesApprovalWorkflow(quest) and quest.status == C.STATUS.CLAIMED then
+        if ns.Rules:CanStart(nil, quest) and ns.StateMachine:CanTransition(quest, C.EVENT.QUEST_STARTED) then
+            local ok, err = self:Start(questId)
+            if not ok then
+                return false, err
+            end
+        end
+    end
     if not ns.Rules:CanSubmit(nil, quest) then
         return false, ns.L["ERR_NO_PERMISSION"]
     end

@@ -81,12 +81,12 @@ function QuestList:Render(parent, quests, onClick)
             "%s | %s | %s (%d/%d)",
             quest.creator or "?",
             cat,
-            Util:GetStatusLabel(quest.status),
+            Util:GetQuestStatusForPlayer(quest),
             pCount,
             Util:GetParticipantsLimitText(quest.maxParticipants)
         ))
         row.reward:SetText(Util:GetRewardText(quest))
-        row.status:SetText(Util:GetStatusLabel(quest.status))
+        row.status:SetText(Util:GetQuestStatusForPlayer(quest))
 
         row:SetScript("OnClick", function()
             if onClick then

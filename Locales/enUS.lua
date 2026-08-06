@@ -55,6 +55,11 @@ local L = {
     STATUS_EXPIRED = "Expired",
     STATUS_CANCELLED = "Cancelled",
 
+    PARTICIPANT_ACCEPTED = "Accepted",
+    PARTICIPANT_ACTIVE = "In Progress",
+    PARTICIPANT_SUBMITTED = "Submitted",
+    PARTICIPANT_COMPLETED = "Completed",
+
     TIME_MODE_NONE = "No time limit",
     TIME_MODE_DEADLINE = "Deadline",
     TIME_MODE_SCHEDULED = "Scheduled",

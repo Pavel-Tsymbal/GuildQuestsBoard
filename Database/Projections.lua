@@ -92,6 +92,9 @@ function Projections:ApplyQuestMutation(event)
         end
         self:AppendHistory(quest, event, C.HISTORY.UPDATED)
     elseif event.type == C.EVENT.QUEST_CLAIMED then
+        if quest.status == C.STATUS.CANCELLED then
+            quest.participants = {}
+        end
         quest.participants = quest.participants or {}
         quest.participants[payload.participant or event.actor] = {
             status = C.PARTICIPANT_STATUS.ACCEPTED,
@@ -104,8 +107,9 @@ function Projections:ApplyQuestMutation(event)
         self:AppendHistory(quest, event, C.HISTORY.ACCEPTED, payload.participant)
     elseif event.type == C.EVENT.QUEST_STARTED then
         local name = payload.participant or event.actor
-        if quest.participants[name] then
-            quest.participants[name].status = C.PARTICIPANT_STATUS.ACTIVE
+        local key = Util:FindParticipantKey(quest, name)
+        if key then
+            quest.participants[key].status = C.PARTICIPANT_STATUS.ACTIVE
         end
         local nextStatus = ns.StateMachine:GetNextStatus(quest, event.type)
         if nextStatus then
@@ -114,10 +118,15 @@ function Projections:ApplyQuestMutation(event)
         self:AppendHistory(quest, event, C.HISTORY.STARTED, name)
     elseif event.type == C.EVENT.QUEST_SUBMITTED then
         local name = payload.participant or event.actor
-        if quest.participants[name] then
-            quest.participants[name].status = C.PARTICIPANT_STATUS.SUBMITTED
+        local key = Util:FindParticipantKey(quest, name)
+        if key then
+            if Util:UsesApprovalWorkflow(quest) then
+                quest.participants[key].status = C.PARTICIPANT_STATUS.SUBMITTED
+                quest.status = C.STATUS.SUBMITTED
+            else
+                quest.participants[key].status = C.PARTICIPANT_STATUS.COMPLETED
+            end
         end
-        quest.status = C.STATUS.SUBMITTED
         self:AppendHistory(quest, event, C.HISTORY.SUBMITTED, name)
     elseif event.type == C.EVENT.QUEST_APPROVED then
         quest.status = C.STATUS.COMPLETED
@@ -135,8 +144,9 @@ function Projections:ApplyQuestMutation(event)
         quest.closedAt = event.wallTime
         self:AppendHistory(quest, event, C.HISTORY.CLOSED)
     elseif event.type == C.EVENT.QUEST_CANCELLED then
-        quest.status = C.STATUS.CANCELLED
-        quest.closedAt = event.wallTime
+        quest.status = C.STATUS.OPEN
+        quest.participants = {}
+        quest.closedAt = nil
         self:AppendHistory(quest, event, C.HISTORY.CANCELLED)
     elseif event.type == C.EVENT.QUEST_EXPIRED then
         quest.status = C.STATUS.EXPIRED
