@@ -31,6 +31,13 @@ function Validator:ValidateCreate(data)
     if maxP ~= 0 and (maxP < 1 or maxP > C.MAX_PARTICIPANTS) then
         return false, ns.L["ERR_INVALID_PARTICIPANTS"]
     end
+    local maxLevel = tonumber(data.maxLevel)
+    if maxLevel == nil then
+        maxLevel = tonumber(data.minLevel) or 0
+    end
+    if maxLevel ~= 0 and (maxLevel < 1 or maxLevel > C.MAX_LEVEL) then
+        return false, ns.L["ERR_INVALID_LEVEL"]
+    end
     local reward = Util:Trim(data.reward or "")
     if #reward > C.REWARD_MAX then
         return false, ns.L["ERR_INVALID_REWARD"]
@@ -82,6 +89,7 @@ function Validator:SanitizeCreate(data)
         deadline = data.deadline,
         scheduledAt = data.scheduledAt,
         maxParticipants = tonumber(data.maxParticipants) or 0,
+        maxLevel = tonumber(data.maxLevel) or tonumber(data.minLevel) or 0,
     }
 end
 

@@ -143,6 +143,10 @@ local function createScrollDropdown(parent, name, width)
     return dropdown
 end
 
+function DateTimePicker:CreateScrollDropdown(parent, name, width)
+    return createScrollDropdown(parent, name, width)
+end
+
 function DateTimePicker:IsLeapYear(year)
     return (year % 4 == 0 and year % 100 ~= 0) or (year % 400 == 0)
 end

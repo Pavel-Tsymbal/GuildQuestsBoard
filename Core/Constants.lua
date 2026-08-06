@@ -20,6 +20,7 @@ ns.Constants = {
     TAG_MAX = 40,
     REWARD_MAX = 80,
     MAX_PARTICIPANTS = 40,
+    MAX_LEVEL = 60,
     MAX_ITEM_REWARDS = 5,
 
     TIME_MODE = {

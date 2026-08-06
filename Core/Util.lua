@@ -215,6 +215,31 @@ function Util:GetParticipantsLimitText(maxParticipants)
     return tostring(maxParticipants)
 end
 
+function Util:GetMaxLevelRequirement(quest)
+    if not quest then
+        return 0
+    end
+    return quest.maxLevel or quest.minLevel or 0
+end
+
+function Util:GetMaxLevelText(maxLevel)
+    if not maxLevel or maxLevel == 0 then
+        return ns.L["LEVEL_UNLIMITED"]
+    end
+    return tostring(maxLevel)
+end
+
+function Util:MeetsLevelRequirement(quest, playerName)
+    local maxLevel = self:GetMaxLevelRequirement(quest)
+    if maxLevel <= 0 then
+        return true
+    end
+    if playerName and playerName ~= self:GetPlayerName() then
+        return true
+    end
+    return UnitLevel("player") <= maxLevel
+end
+
 function Util:UsesApprovalWorkflow(quest)
     if not quest then
         return false

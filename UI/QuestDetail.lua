@@ -177,6 +177,10 @@ function QuestDetail:Show(questId)
     if quest.scheduledAt then
         table.insert(lines, ns.L["DETAIL_SCHEDULED"] .. ": " .. date("%Y-%m-%d %H:%M", quest.scheduledAt))
     end
+    local maxLevel = Util:GetMaxLevelRequirement(quest)
+    if maxLevel > 0 then
+        table.insert(lines, ns.L["DETAIL_MAX_LEVEL"] .. ": " .. maxLevel)
+    end
     self.info:SetText(table.concat(lines, "\n"))
     self.desc:SetText(quest.description or "")
 

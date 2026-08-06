@@ -134,6 +134,10 @@ function Rules:CanAcceptQuest(playerName, quest)
     if quest.status ~= C.STATUS.CANCELLED and Util:GetParticipant(quest, name) then
         return false, ns.L["ERR_NO_PERMISSION"]
     end
+    local maxLevel = quest.maxLevel or quest.minLevel or 0
+    if maxLevel > 0 and UnitLevel("player") > maxLevel then
+        return false, string.format(ns.L["ERR_LEVEL_TOO_HIGH"], maxLevel)
+    end
     return true
 end
 

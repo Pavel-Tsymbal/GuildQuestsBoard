@@ -29,6 +29,13 @@ function CreateQuest:GetParticipantsModeLabel(unlimited)
     return ns.L["PARTICIPANTS_LIMITED"]
 end
 
+function CreateQuest:GetLevelModeLabel(unlimited)
+    if unlimited then
+        return ns.L["LEVEL_UNLIMITED"]
+    end
+    return ns.L["LEVEL_LIMITED"]
+end
+
 function CreateQuest:AddLabel(localeKey, offsetY)
     local fs = self.content:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     fs:SetPoint("TOPLEFT", 16, offsetY)
@@ -111,11 +118,28 @@ function CreateQuest:AttachBlinkingCaret(editBox)
     end)
 end
 
+function CreateQuest:RefreshMaxLevelDropdown()
+    if not self.fields.maxLevelValue then
+        return
+    end
+    local items = {}
+    for level = 1, C.MAX_LEVEL do
+        table.insert(items, {
+            value = level,
+            text = tostring(level),
+        })
+    end
+    self.fields.maxLevelValue.onSelect = function(value)
+        self.selectedMaxLevel = value
+    end
+    self.fields.maxLevelValue:SetScrollItems(items, self.selectedMaxLevel or 1)
+end
+
 function CreateQuest:Init()
     self.labels = {}
 
     self.frame = CreateFrame("Frame", "GuildQuestsCreateFrame", UIParent, "BackdropTemplate")
-    self.frame:SetSize(520, 560)
+    self.frame:SetSize(520, 620)
     self.frame:SetPoint("CENTER")
     self.frame:SetFrameStrata("FULLSCREEN_DIALOG")
     self.frame:Hide()
@@ -258,6 +282,42 @@ function CreateQuest:Init()
     end)
     self.fields.maxParticipantsLimit:Hide()
 
+    self:AddLabel("CREATE_MIN_LEVEL", y - 252)
+    self.fields.minLevelMode = CreateFrame("Frame", nil, self.content, "UIDropDownMenuTemplate")
+    self.fields.minLevelMode:SetPoint("TOPLEFT", 8, y - 274)
+    UIDropDownMenu_SetWidth(self.fields.minLevelMode, 180)
+    UIDropDownMenu_Initialize(self.fields.minLevelMode, function()
+        local modes = {
+            { unlimited = true },
+            { unlimited = false },
+        }
+        for _, mode in ipairs(modes) do
+            local info = UIDropDownMenu_CreateInfo()
+            local unlimited = mode.unlimited
+            info.text = self:GetLevelModeLabel(unlimited)
+            info.value = unlimited
+            info.func = function()
+                self.levelUnlimited = unlimited
+                UIDropDownMenu_SetText(
+                    self.fields.minLevelMode,
+                    self:GetLevelModeLabel(unlimited)
+                )
+                self:UpdateFormLayout()
+            end
+            UIDropDownMenu_AddButton(info)
+        end
+    end)
+
+    self:AddLabel("CREATE_LEVEL_VALUE", y - 310)
+    self.labels["CREATE_LEVEL_VALUE"]:Hide()
+    self.fields.maxLevelValue = ns.DateTimePicker:CreateScrollDropdown(
+        self.content,
+        "GuildQuestsCreateMaxLevelDropdown",
+        180
+    )
+    self.fields.maxLevelValue:SetPoint("TOPLEFT", 8, y - 332)
+    self.fields.maxLevelValue:Hide()
+
     self.submit = CreateFrame("Button", nil, self.frame, "UIPanelButtonTemplate")
     self.submit:SetSize(120, 24)
     self.submit:SetPoint("BOTTOMRIGHT", -16, 16)
@@ -271,7 +331,10 @@ function CreateQuest:Init()
     self.selectedCategory = "OTHER"
     self.selectedTimeMode = C.TIME_MODE.NONE
     self.participantsUnlimited = true
+    self.levelUnlimited = true
+    self.selectedMaxLevel = 1
 
+    self:RefreshMaxLevelDropdown()
     self:UpdateTexts()
     self:UpdateTimeValueVisibility()
 
@@ -409,6 +472,29 @@ function CreateQuest:UpdateFormLayout()
         end
     end
 
+    local participantsBottomY = maxY
+    if showMaxParticipants then
+        participantsBottomY = limited and (maxY - 76) or (maxY - 22)
+    end
+    local levelY = participantsBottomY - 36
+    self:SetDropdownRow("CREATE_MIN_LEVEL", self.fields.minLevelMode, levelY)
+
+    local levelLimited = not self.levelUnlimited
+    if self.labels["CREATE_LEVEL_VALUE"] then
+        self.labels["CREATE_LEVEL_VALUE"]:SetShown(levelLimited)
+        if levelLimited then
+            self.labels["CREATE_LEVEL_VALUE"]:ClearAllPoints()
+            self.labels["CREATE_LEVEL_VALUE"]:SetPoint("TOPLEFT", 16, levelY - 58)
+        end
+    end
+    if self.fields.maxLevelValue then
+        self.fields.maxLevelValue:SetShown(levelLimited)
+        if levelLimited then
+            self.fields.maxLevelValue:ClearAllPoints()
+            self.fields.maxLevelValue:SetPoint("TOPLEFT", 8, levelY - 80)
+        end
+    end
+
     local contentBottomY
     if not showMaxParticipants then
         contentBottomY = showTimeValue
@@ -422,6 +508,11 @@ function CreateQuest:UpdateFormLayout()
         contentBottomY = limited
             and self.layout.contentBottomCompactLimitedY
             or self.layout.contentBottomCompactY
+    end
+    if levelLimited then
+        contentBottomY = contentBottomY - 58
+    else
+        contentBottomY = contentBottomY - 36
     end
     self.content:SetHeight(math.abs(contentBottomY) + 24)
     self.scroll:UpdateScrollChildRect()
@@ -464,6 +555,13 @@ function CreateQuest:UpdateTexts()
             self:GetParticipantsModeLabel(self.participantsUnlimited ~= false)
         )
     end
+    if self.fields.minLevelMode then
+        UIDropDownMenu_SetText(
+            self.fields.minLevelMode,
+            self:GetLevelModeLabel(self.levelUnlimited ~= false)
+        )
+    end
+    self:RefreshMaxLevelDropdown()
 end
 
 function CreateQuest:Reset()
@@ -471,6 +569,8 @@ function CreateQuest:Reset()
     self.fields.desc:SetText("")
     self.fields.reward:SetText("")
     self.participantsUnlimited = true
+    self.levelUnlimited = true
+    self.selectedMaxLevel = 1
     self.fields.maxParticipantsLimit:SetText("5")
     self.selectedCategory = "OTHER"
     self.selectedTimeMode = C.TIME_MODE.NONE
@@ -480,6 +580,11 @@ function CreateQuest:Reset()
         self.fields.maxParticipantsMode,
         self:GetParticipantsModeLabel(true)
     )
+    UIDropDownMenu_SetText(
+        self.fields.minLevelMode,
+        self:GetLevelModeLabel(true)
+    )
+    self:RefreshMaxLevelDropdown()
     ns.DateTimePicker:SetDefault(self.dateTimePicker)
     self.dateTimePicker.refresh()
     self:UpdateTimeValueVisibility()
@@ -509,6 +614,11 @@ function CreateQuest:Submit()
         maxParticipants = tonumber(self.fields.maxParticipantsLimit:GetText()) or 0
     end
 
+    local maxLevel = 0
+    if not self.levelUnlimited then
+        maxLevel = self.selectedMaxLevel or 1
+    end
+
     local data = {
         title = self.fields.title:GetText() or "",
         description = self.fields.desc:GetText() or "",
@@ -516,6 +626,7 @@ function CreateQuest:Submit()
         reward = Util:Trim(self.fields.reward:GetText() or ""),
         timeMode = self.selectedTimeMode,
         maxParticipants = maxParticipants,
+        maxLevel = maxLevel,
         itemRewards = {},
     }
     local ts = ns.DateTimePicker:GetTimestamp(self.dateTimePicker)
