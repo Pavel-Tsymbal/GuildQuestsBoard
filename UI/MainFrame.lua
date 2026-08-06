@@ -71,7 +71,9 @@ function MainUI:Init()
     end
 
     self.frameCreate:SetScript("OnClick", function()
-        ns.CreateQuest:Show()
+        if ns.Rules:HasRankPermission(nil, "create") then
+            ns.CreateQuest:Show()
+        end
     end)
     self.frameClose:SetScript("OnClick", function()
         self:Hide()
@@ -106,6 +108,23 @@ function MainUI:Init()
             self:Refresh()
         end
     end)
+    ns.GQ:RegisterCallback("GuildSettingsUpdated", function()
+        self:UpdateCreateButtonState()
+    end)
+    ns.GQ:RegisterEvent("GUILD_ROSTER_UPDATE", function()
+        self:UpdateCreateButtonState()
+    end)
+    ns.GQ:RegisterEvent("PLAYER_GUILD_UPDATE", function()
+        self:UpdateCreateButtonState()
+    end)
+    self:UpdateCreateButtonState()
+end
+
+function MainUI:UpdateCreateButtonState()
+    if not self.frameCreate then
+        return
+    end
+    self.frameCreate:SetEnabled(ns.Rules:HasRankPermission(nil, "create"))
 end
 
 function MainUI:IsSettingsView()
@@ -138,6 +157,7 @@ function MainUI:UpdateTexts()
     else
         self.frameTitle:SetText(ns.L["SETTINGS_TITLE"])
     end
+    self:UpdateCreateButtonState()
 end
 
 function MainUI:SetBoardWidgetsShown(shown, showFilterBar)
