@@ -1,0 +1,8 @@
+package-as: GuildQuestsBoard
+
+ignore:
+  - .github
+  - .gitignore
+  - README.md
+  - screenshots
+  - docs

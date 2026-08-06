@@ -1,7 +1,7 @@
-## Interface: 11507, 11508, 11509
+## Interface: 11509
 ## Title: Guild Quests Board
 ## Notes: Serverless guild quest board with peer-to-peer sync
-## Version: 1.0.0
+## Version: @project-version@
 ## Author: Pavel Tsymbal
 ## SavedVariables: GuildQuestsDB
 ## SavedVariablesPerCharacter: GuildQuestsCharDB
