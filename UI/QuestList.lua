@@ -77,14 +77,19 @@ function QuestList:Render(parent, quests, onClick)
         row.title:SetText(quest.title or "?")
         local cat = Util:GetCategoryLabel(quest.category)
         local pCount = Util:CountTable(quest.participants)
-        row.meta:SetText(string.format(
-            "%s | %s | %s (%d/%d)",
+        local meta = string.format(
+            "%s | %s | %s (%d/%s)",
             quest.creator or "?",
             cat,
             Util:GetQuestStatusForPlayer(quest),
             pCount,
             Util:GetParticipantsLimitText(quest.maxParticipants)
-        ))
+        )
+        local maxLevel = Util:GetMaxLevelRequirement(quest)
+        if maxLevel > 0 then
+            meta = meta .. " | " .. ns.L["DETAIL_MAX_LEVEL"] .. ": " .. maxLevel
+        end
+        row.meta:SetText(meta)
         row.reward:SetText(Util:GetRewardText(quest))
         row.status:SetText(Util:GetQuestStatusForPlayer(quest))
 
