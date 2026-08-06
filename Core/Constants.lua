@@ -16,7 +16,7 @@ ns.Constants = {
     DEBUG_SYNC = false,
 
     TITLE_MAX = 80,
-    DESC_MAX = 500,
+    DESC_MAX = 1500,
     TAG_MAX = 40,
     REWARD_MAX = 80,
     MAX_PARTICIPANTS = 40,

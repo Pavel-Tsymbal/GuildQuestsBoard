@@ -145,6 +145,7 @@ local L = {
     ERR_QUEST_FULL = "This quest is full.",
     ERR_INVALID_TITLE = "Title is required.",
     ERR_INVALID_DESC = "Description is required.",
+    ERR_DESC_TOO_LONG = "Description is too long (max %d characters).",
     ERR_INVALID_DATE = "Enter date as YYYY-MM-DD HH:MM.",
     ERR_INVALID_PARTICIPANTS = "Max participants must be at least 1.",
     ERR_INVALID_LEVEL = "Level must be between 1 and 60.",

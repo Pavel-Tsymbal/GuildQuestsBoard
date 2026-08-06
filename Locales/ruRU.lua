@@ -145,6 +145,7 @@ local L = {
     ERR_QUEST_FULL = "Задание заполнено.",
     ERR_INVALID_TITLE = "Укажите название.",
     ERR_INVALID_DESC = "Укажите описание.",
+    ERR_DESC_TOO_LONG = "Описание слишком длинное (максимум %d символов).",
     ERR_INVALID_DATE = "Укажите дату в формате YYYY-MM-DD HH:MM.",
     ERR_INVALID_PARTICIPANTS = "Минимум 1 участник.",
     ERR_INVALID_LEVEL = "Укажите уровень от 1 до 60.",

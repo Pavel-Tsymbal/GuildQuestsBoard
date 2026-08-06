@@ -22,7 +22,7 @@ function Validator:ValidateCreate(data)
         return false, ns.L["ERR_INVALID_DESC"]
     end
     if #description > C.DESC_MAX then
-        return false, ns.L["ERR_INVALID_DESC"]
+        return false, string.format(ns.L["ERR_DESC_TOO_LONG"], C.DESC_MAX)
     end
     local maxP = tonumber(data.maxParticipants)
     if maxP == nil then
