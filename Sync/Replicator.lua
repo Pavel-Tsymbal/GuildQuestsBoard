@@ -6,8 +6,92 @@ local Replicator = {}
 ns.Replicator = Replicator
 
 Replicator.conflicts = {}
+Replicator.pendingSettingsEvents = {}
 
 function Replicator:Init()
+    ns.GQ:RegisterCallback("GuildRosterUpdated", function()
+        self:FlushPendingSettingsEvents()
+    end)
+end
+
+function Replicator:EvaluateSettingsAcceptance(event, sender, options)
+    options = options or {}
+    local actor = event.actor or sender
+
+    if ns.GuildRank:IsGuildMaster(sender) then
+        return "accept"
+    end
+
+    if options.allowRelayedSettings and ns.GuildRank:IsGuildMaster(actor) then
+        return "accept"
+    end
+
+    if options.allowRelayedSettings then
+        local actorRank = ns.GuildRank:GetRankIndex(actor)
+        if actorRank == nil then
+            return "defer"
+        end
+        return "reject"
+    end
+
+    local senderRank = ns.GuildRank:GetRankIndex(sender)
+    if senderRank == nil then
+        return "defer"
+    end
+    return "reject"
+end
+
+function Replicator:QueuePendingSettingsEvent(event, sender, options)
+    if not event or not event.id then
+        return
+    end
+    self.pendingSettingsEvents[event.id] = {
+        event = event,
+        sender = sender,
+        options = options or {},
+    }
+    if C.DEBUG_SYNC then
+        ns.GQ:Print(string.format(ns.L["DEBUG_SYNC_SETTINGS_DEFERRED"], tostring(sender)))
+    end
+end
+
+function Replicator:GetPendingSettingsCount()
+    return Util:CountTable(self.pendingSettingsEvents)
+end
+
+function Replicator:FlushPendingSettingsEvents()
+    local pending = self.pendingSettingsEvents
+    if not pending or not next(pending) then
+        return 0
+    end
+
+    local applied = 0
+    local toRemove = {}
+
+    for id, entry in pairs(pending) do
+        local verdict = self:EvaluateSettingsAcceptance(entry.event, entry.sender, entry.options)
+        if verdict == "accept" then
+            if self:ProcessRemoteEvent(entry.event, entry.sender, entry.options, true) then
+                applied = applied + 1
+            end
+            toRemove[id] = true
+        elseif verdict == "reject" then
+            if C.DEBUG_SYNC then
+                ns.GQ:Print(string.format(ns.L["DEBUG_SYNC_SETTINGS_REJECTED"], tostring(entry.sender)))
+            end
+            toRemove[id] = true
+        end
+    end
+
+    for id in pairs(toRemove) do
+        pending[id] = nil
+    end
+
+    if applied > 0 and C.DEBUG_SYNC then
+        ns.GQ:Print(string.format(ns.L["DEBUG_SYNC_SETTINGS_APPLIED"], applied))
+    end
+
+    return applied
 end
 
 function Replicator:ProcessLocalEvent(event)
@@ -34,7 +118,7 @@ function Replicator:ProcessLocalEvent(event)
     return self:ApplyEvent(event, true)
 end
 
-function Replicator:ProcessRemoteEvent(event, sender, options)
+function Replicator:ProcessRemoteEvent(event, sender, options, fromPendingFlush)
     options = options or {}
     if not event or not event.id then
         return false
@@ -46,12 +130,16 @@ function Replicator:ProcessRemoteEvent(event, sender, options)
         return false
     end
     if event.type == C.EVENT.SETTINGS_UPDATED then
-        local actor = event.actor or sender
-        if ns.GuildRank:IsGuildMaster(sender) then
-            -- live broadcast or catch-up directly from GM
-        elseif options.allowRelayedSettings and ns.GuildRank:IsGuildMaster(actor) then
-            -- catch-up relay of a GM-authored settings event
-        else
+        local verdict = self:EvaluateSettingsAcceptance(event, sender, options)
+        if verdict == "defer" then
+            if not fromPendingFlush then
+                self:QueuePendingSettingsEvent(event, sender, options)
+            end
+            return false
+        elseif verdict == "reject" then
+            if C.DEBUG_SYNC then
+                ns.GQ:Print(string.format(ns.L["DEBUG_SYNC_SETTINGS_REJECTED"], tostring(sender)))
+            end
             return false
         end
     end
@@ -106,6 +194,9 @@ function Replicator:ApplyEvent(event, isLocal)
     end
     if event.type == C.EVENT.SETTINGS_UPDATED then
         ns.GQ:Fire("GuildSettingsUpdated")
+        if ns.Heartbeat then
+            ns.Heartbeat:BroadcastNow()
+        end
     end
     return true, event
 end

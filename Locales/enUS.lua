@@ -10,6 +10,10 @@ local L = {
     SLASH_TESTGM_FORCED = "Test GM mode is always on (DEBUG_GUILD_MASTER in Constants).",
     SLASH_DEBUGSYNC_ON = "Sync debug: ON",
     SLASH_DEBUGSYNC_OFF = "Sync debug: OFF",
+    DEBUG_SYNC_SETTINGS_DEFERRED = "Deferred SETTINGS_UPDATED from %s (guild roster not ready).",
+    DEBUG_SYNC_SETTINGS_REJECTED = "Rejected SETTINGS_UPDATED from %s.",
+    DEBUG_SYNC_SETTINGS_APPLIED = "Applied %d pending settings event(s).",
+    DEBUG_SYNC_SETTINGS_CATCHUP = "Requesting settings history from %s.",
 
     MINIMAP_LEFT_CLICK = "Open Guild Board",
     MINIMAP_RIGHT_TITLE = "Guild Quests",
