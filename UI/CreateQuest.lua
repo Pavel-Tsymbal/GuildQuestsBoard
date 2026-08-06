@@ -162,6 +162,14 @@ function CreateQuest:Init()
             info.func = function()
                 self.selectedCategory = category
                 UIDropDownMenu_SetText(self.fields.category, Util:GetCategoryLabel(category))
+                if category == "PERMANENT" then
+                    self.participantsUnlimited = true
+                    UIDropDownMenu_SetText(
+                        self.fields.maxParticipantsMode,
+                        self:GetParticipantsModeLabel(true)
+                    )
+                end
+                self:UpdateFormLayout()
             end
             UIDropDownMenu_AddButton(info)
         end
@@ -198,8 +206,10 @@ function CreateQuest:Init()
         maxParticipantsCompactY = y - 58,
         contentBottomExpandedY = y - 190,
         contentBottomExpandedLimitedY = y - 248,
+        contentBottomExpandedNoMaxY = y - 132,
         contentBottomCompactY = y - 110,
         contentBottomCompactLimitedY = y - 168,
+        contentBottomCompactNoMaxY = y - 58,
     }
 
     self:AddLabel("CREATE_MAX_PARTICIPANTS", y - 138)
@@ -370,10 +380,20 @@ function CreateQuest:UpdateFormLayout()
         self:UpdateTimeValueLabel()
     end
 
-    local maxY = showTimeValue and self.layout.maxParticipantsY or self.layout.maxParticipantsCompactY
-    self:SetDropdownRow("CREATE_MAX_PARTICIPANTS", self.fields.maxParticipantsMode, maxY)
+    local showMaxParticipants = self.selectedCategory ~= "PERMANENT"
+    if self.labels["CREATE_MAX_PARTICIPANTS"] then
+        self.labels["CREATE_MAX_PARTICIPANTS"]:SetShown(showMaxParticipants)
+    end
+    if self.fields.maxParticipantsMode then
+        self.fields.maxParticipantsMode:SetShown(showMaxParticipants)
+    end
 
-    local limited = not self.participantsUnlimited
+    local maxY = showTimeValue and self.layout.maxParticipantsY or self.layout.maxParticipantsCompactY
+    if showMaxParticipants then
+        self:SetDropdownRow("CREATE_MAX_PARTICIPANTS", self.fields.maxParticipantsMode, maxY)
+    end
+
+    local limited = showMaxParticipants and not self.participantsUnlimited
     if self.labels["CREATE_PARTICIPANTS_LIMIT"] then
         self.labels["CREATE_PARTICIPANTS_LIMIT"]:SetShown(limited)
         if limited then
@@ -390,7 +410,11 @@ function CreateQuest:UpdateFormLayout()
     end
 
     local contentBottomY
-    if showTimeValue then
+    if not showMaxParticipants then
+        contentBottomY = showTimeValue
+            and self.layout.contentBottomExpandedNoMaxY
+            or self.layout.contentBottomCompactNoMaxY
+    elseif showTimeValue then
         contentBottomY = limited
             and self.layout.contentBottomExpandedLimitedY
             or self.layout.contentBottomExpandedY
@@ -481,7 +505,7 @@ function CreateQuest:Submit()
     self.fields.title:ClearFocus()
 
     local maxParticipants = 0
-    if not self.participantsUnlimited then
+    if self.selectedCategory ~= "PERMANENT" and not self.participantsUnlimited then
         maxParticipants = tonumber(self.fields.maxParticipantsLimit:GetText()) or 0
     end
 
