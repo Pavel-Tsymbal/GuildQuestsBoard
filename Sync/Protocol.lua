@@ -40,24 +40,17 @@ function Protocol:ValidateOpcode(opcode)
     return false
 end
 
-function Protocol:BuildHeartbeat(version, lamport, stateHash, guildKey, settingsRevision)
-    return table.concat({
-        version,
-        tostring(lamport),
-        stateHash or "0",
-        guildKey or "",
-        tostring(settingsRevision or 0),
-    }, "|")
+function Protocol:BuildHeartbeat(version, lamport, stateHash, guildKey)
+    return table.concat({ version, tostring(lamport), stateHash or "0", guildKey or "" }, "|")
 end
 
 function Protocol:ParseHeartbeat(payload)
-    local version, lamport, stateHash, guildKey, settingsRevision = payload:match("([^|]*)|([^|]*)|([^|]*)|([^|]*)|?(.*)")
+    local version, lamport, stateHash, guildKey = payload:match("([^|]*)|([^|]*)|([^|]*)|(.*)")
     return {
         version = version,
         lamport = tonumber(lamport) or 0,
         stateHash = stateHash,
         guildKey = guildKey,
-        settingsRevision = tonumber(settingsRevision) or 0,
     }
 end
 

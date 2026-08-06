@@ -10,10 +10,6 @@ local L = {
     SLASH_TESTGM_FORCED = "Тестовый режим GM всегда включён (DEBUG_GUILD_MASTER в Constants).",
     SLASH_DEBUGSYNC_ON = "Отладка синхронизации: вкл.",
     SLASH_DEBUGSYNC_OFF = "Отладка синхронизации: выкл.",
-    DEBUG_SYNC_SETTINGS_DEFERRED = "SETTINGS_UPDATED от %s отложено (roster ещё не загружен).",
-    DEBUG_SYNC_SETTINGS_REJECTED = "SETTINGS_UPDATED от %s отклонено.",
-    DEBUG_SYNC_SETTINGS_APPLIED = "Применено отложенных settings-событий: %d.",
-    DEBUG_SYNC_SETTINGS_CATCHUP = "Запрос истории настроек у %s.",
 
     MINIMAP_LEFT_CLICK = "Открыть доску",
     MINIMAP_RIGHT_TITLE = "Гильдейские задания",

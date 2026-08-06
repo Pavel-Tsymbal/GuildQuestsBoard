@@ -38,18 +38,11 @@ function Heartbeat:Tick()
         lamport = ns.Storage:GetLogicalClock(),
         stateHash = ns.Storage:GetStateHash(),
         guildKey = Util:GetGuildKey(),
-        settingsRevision = (ns.Storage:GetSettings() or {}).revision or 0,
     })
-    self:RegisterPeer(
-        Util:GetPlayerName(),
-        C.VERSION,
-        ns.Storage:GetLogicalClock(),
-        ns.Storage:GetStateHash(),
-        (ns.Storage:GetSettings() or {}).revision or 0
-    )
+    self:RegisterPeer(Util:GetPlayerName(), C.VERSION, ns.Storage:GetLogicalClock(), ns.Storage:GetStateHash())
 end
 
-function Heartbeat:RegisterPeer(name, version, lamport, stateHash, settingsRevision)
+function Heartbeat:RegisterPeer(name, version, lamport, stateHash)
     if not name then
         return
     end
@@ -62,7 +55,6 @@ function Heartbeat:RegisterPeer(name, version, lamport, stateHash, settingsRevis
         lastHeartbeat = Util:Now(),
         logicalClock = lamport or 0,
         stateHash = stateHash,
-        settingsRevision = settingsRevision or 0,
         compatible = Util:VersionsCompatible(version),
     }
     local compatibleCount = self:GetOnlineAddonCount()
@@ -76,7 +68,7 @@ function Heartbeat:HandleHeartbeat(sender, data)
         return
     end
     local compatible = Util:VersionsCompatible(data.version)
-    self:RegisterPeer(sender, data.version, data.lamport, data.stateHash, data.settingsRevision)
+    self:RegisterPeer(sender, data.version, data.lamport, data.stateHash)
     if not compatible then
         ns.GQ:Fire("VersionMismatch", sender, data.version)
     end

@@ -8,8 +8,6 @@ ns.SyncEngine = SyncEngine
 
 SyncEngine.catchUpTimer = nil
 SyncEngine.lastCatchUpTarget = nil
-SyncEngine.settingsCatchUpAttempts = 0
-SyncEngine.MAX_SETTINGS_CATCHUP_ATTEMPTS = 3
 
 function SyncEngine:Init()
     ns.GQ:RegisterEvent("PLAYER_GUILD_UPDATE", function()
@@ -22,14 +20,6 @@ function SyncEngine:Init()
         if Util:GetGuildKey() then
             C_Timer.After(2, function()
                 SyncEngine:RequestCatchUp(false)
-            end)
-        end
-    end)
-    ns.GQ:RegisterCallback("GuildRosterUpdated", function()
-        ns.Replicator:FlushPendingSettingsEvents()
-        if not SyncEngine:HasSettingsEvent() then
-            C_Timer.After(1, function()
-                SyncEngine:RequestCatchUpForMissingSettings()
             end)
         end
     end)
@@ -47,17 +37,12 @@ function SyncEngine:OnGuildReady()
         self:RequestCatchUp(false)
         ns.Transport:SendStateHash(ns.Storage:GetStateHash(), ns.Storage:GetLogicalClock())
     end)
-    C_Timer.After(C.SYNC_CATCHUP_DELAY + 4, function()
-        ns.Replicator:FlushPendingSettingsEvents()
-        self:RequestCatchUpForMissingSettings()
-    end)
 end
 
 function SyncEngine:OnGuildChange()
     if Util:GetGuildKey() then
         ns.Storage:EnsureGuildStore()
         ns.GuildRank:Refresh()
-        self.settingsCatchUpAttempts = 0
         self:OnGuildReady()
         ns.GQ:Fire("GuildChanged")
         ns.MainUI:UpdateTexts()
@@ -96,11 +81,7 @@ function SyncEngine:HandleEvent(payload, sender)
     local event = ns.Codec:DecodeEvent(payload)
     if event then
         event.actor = event.actor or sender
-        local applied = ns.Replicator:ProcessRemoteEvent(event, sender)
-        if applied and event.type == C.EVENT.SETTINGS_UPDATED then
-            self.settingsCatchUpAttempts = 0
-        end
-        ns.Replicator:FlushPendingSettingsEvents()
+        ns.Replicator:ProcessRemoteEvent(event, sender)
     elseif C.DEBUG_SYNC then
         ns.GQ:Print("Decode failed for event from " .. tostring(sender))
     end
@@ -124,13 +105,7 @@ function SyncEngine:HandleEventResponse(payload, sender)
     end
     table.sort(events, Util.CompareEventOrder)
     for _, event in ipairs(events) do
-        ns.Replicator:ProcessRemoteEvent(event, sender, { allowRelayedSettings = true })
-    end
-    ns.Replicator:FlushPendingSettingsEvents()
-    if self:HasSettingsEvent() then
-        self.settingsCatchUpAttempts = 0
-    else
-        self:RequestCatchUpForMissingSettings()
+        ns.Replicator:ProcessRemoteEvent(event, sender)
     end
     ns.GQ:Fire("SyncComplete")
 end
@@ -142,107 +117,13 @@ function SyncEngine:HandleStateHash(sender, payload)
     end
 end
 
-function SyncEngine:GetSettingsRevision()
-    local settings = ns.Storage:GetSettings()
-    return settings and settings.revision or 0
-end
-
-function SyncEngine:HasSettingsEvent()
-    local store = ns.Storage:GetGuildStore()
-    if not store then
-        return false
-    end
-    for _, event in ipairs(store.events) do
-        if event.type == C.EVENT.SETTINGS_UPDATED then
-            return true
-        end
-    end
-    return false
-end
-
-function SyncEngine:GetCatchUpSinceLamport()
-    local since = ns.Storage:GetMaxEventLamport()
-    if since > 0 and not self:HasSettingsEvent() then
-        return 0
-    end
-    return since
-end
-
-function SyncEngine:SelectCatchUpPeer(since, localHash)
-    local bestPeer = nil
-    local bestScore = -1
-    local localRevision = self:GetSettingsRevision()
-    local needsSettings = not self:HasSettingsEvent()
-
-    for name, peer in pairs(ns.Heartbeat:GetPeers()) do
-        if name ~= Util:GetPlayerName() and peer.compatible then
-            local lamport = peer.logicalClock or 0
-            local hashMismatch = peer.stateHash and peer.stateHash ~= localHash
-            if lamport > since or hashMismatch then
-                local score = lamport
-                if hashMismatch then
-                    score = score + 1000000
-                end
-                if needsSettings and (peer.settingsRevision or 0) > localRevision then
-                    score = score + 500000 + (peer.settingsRevision or 0)
-                end
-                if score > bestScore then
-                    bestScore = score
-                    bestPeer = name
-                end
-            end
-        end
-    end
-
-    return bestPeer
-end
-
-function SyncEngine:RequestCatchUpForMissingSettings()
-    if self:HasSettingsEvent() then
-        self.settingsCatchUpAttempts = 0
-        return false
-    end
-    if self.settingsCatchUpAttempts >= self.MAX_SETTINGS_CATCHUP_ATTEMPTS then
-        return false
-    end
-
-    local localRevision = self:GetSettingsRevision()
-    local bestPeer = nil
-    local bestRevision = localRevision
-
-    for name, peer in pairs(ns.Heartbeat:GetPeers()) do
-        if name ~= Util:GetPlayerName() and peer.compatible then
-            local rev = peer.settingsRevision or 0
-            if rev > bestRevision then
-                bestRevision = rev
-                bestPeer = name
-            end
-        end
-    end
-
-    if not bestPeer then
-        bestPeer = self:SelectCatchUpPeer(0, ns.Storage:GetStateHash())
-    end
-
-    if bestPeer then
-        self.settingsCatchUpAttempts = self.settingsCatchUpAttempts + 1
-        ns.Transport:RequestEvents(bestPeer, 0)
-        if C.DEBUG_SYNC then
-            ns.GQ:Print(string.format(ns.L["DEBUG_SYNC_SETTINGS_CATCHUP"], bestPeer))
-        end
-        return true
-    end
-
-    return false
-end
-
 function SyncEngine:OnHashMismatch(sender)
     if self.catchUpTimer then
         ns.GQ:CancelTimer(self.catchUpTimer)
     end
     self.lastCatchUpTarget = sender
     self.catchUpTimer = ns.GQ:ScheduleTimer(function()
-        ns.Transport:RequestEvents(sender, SyncEngine:GetCatchUpSinceLamport())
+        ns.Transport:RequestEvents(sender, ns.Storage:GetMaxEventLamport())
     end, 1 + math.random() * 2)
 end
 
@@ -250,9 +131,17 @@ function SyncEngine:RequestCatchUp(verbose)
     if not IsInGuild() then
         return
     end
-    local since = self:GetCatchUpSinceLamport()
+    local since = ns.Storage:GetMaxEventLamport()
     local localHash = ns.Storage:GetStateHash()
-    local bestPeer = self:SelectCatchUpPeer(since, localHash)
+    local bestPeer = nil
+    for name, peer in pairs(ns.Heartbeat:GetPeers()) do
+        if name ~= Util:GetPlayerName() and peer.compatible then
+            if peer.logicalClock > since or (peer.stateHash and peer.stateHash ~= localHash) then
+                bestPeer = name
+                break
+            end
+        end
+    end
     if bestPeer then
         ns.Transport:RequestEvents(bestPeer, since)
         if verbose then
@@ -286,13 +175,6 @@ function SyncEngine:PrintDebug()
             store.logicalClock or 0,
             ns.Storage:GetMaxEventLamport()
         ))
-        local settings = store.settings or {}
-        gq:Print(string.format(
-            "Settings: revision %d, has SETTINGS_UPDATED: %s, pending: %d",
-            settings.revision or 0,
-            tostring(self:HasSettingsEvent()),
-            ns.Replicator:GetPendingSettingsCount()
-        ))
     else
         gq:Print("Local: no guild store (not in guild or roster not loaded)")
     end
@@ -300,10 +182,9 @@ function SyncEngine:PrintDebug()
     for name, peer in pairs(ns.Heartbeat:GetPeers()) do
         peerCount = peerCount + 1
         gq:Print(string.format(
-            "Peer: %s lamport=%d settingsRev=%d compatible=%s",
+            "Peer: %s lamport=%d compatible=%s",
             name,
             peer.logicalClock or 0,
-            peer.settingsRevision or 0,
             tostring(peer.compatible)
         ))
     end
