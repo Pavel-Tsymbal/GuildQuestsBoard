@@ -111,6 +111,9 @@ function MainUI:Init()
     ns.GQ:RegisterCallback("GuildSettingsUpdated", function()
         self:UpdateCreateButtonState()
     end)
+    ns.GQ:RegisterCallback("GuildRosterUpdated", function()
+        self:UpdateCreateButtonState()
+    end)
     ns.GQ:RegisterEvent("GUILD_ROSTER_UPDATE", function()
         self:UpdateCreateButtonState()
     end)
@@ -177,6 +180,7 @@ function MainUI:ShowBoardView()
     self:SetBoardWidgetsShown(true, true)
     self.frameTitle:SetText(ns.L["BOARD_TITLE"])
     self:UpdateTabHighlight()
+    self:UpdateCreateButtonState()
     self:Refresh()
 end
 
@@ -205,6 +209,7 @@ function MainUI:Show()
         return
     end
     ns.Storage:EnsureGuildStore()
+    self:UpdateCreateButtonState()
     self.frame:Show()
     if self.activeView == "settings" then
         self:ShowSettingsView()

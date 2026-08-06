@@ -264,7 +264,7 @@ function SettingsPanel:RenderGuildEditor(panel, y)
 
     y = y - 24
     local numRanks = ns.GuildRank:GetNumRanks()
-    for rankIndex = 0, math.min(numRanks - 1, 4) do
+    for rankIndex = 0, numRanks - 1 do
         local rankName = ns.GuildRank:GetRankName(rankIndex)
         local rankLine = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
         rankLine:SetPoint("TOPLEFT", 0, y)

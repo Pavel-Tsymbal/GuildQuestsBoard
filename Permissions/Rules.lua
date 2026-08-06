@@ -31,8 +31,11 @@ end
 function Rules:GetRankPermissions(rankIndex)
     local settings = self:GetSettings()
     local ranks = settings.permissions and settings.permissions.ranks
-    if ranks and ranks[rankIndex] then
-        return ranks[rankIndex]
+    if ranks then
+        local perms = ranks[rankIndex] or ranks[tostring(rankIndex)]
+        if perms then
+            return perms
+        end
     end
     return self:GetDefaultRankPermissions(rankIndex)
 end

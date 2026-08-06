@@ -26,6 +26,7 @@ end
 
 function GuildRank:OnRosterUpdate()
     self:RebuildCache()
+    ns.GQ:Fire("GuildRosterUpdated")
 end
 
 function GuildRank:RebuildCache()
@@ -57,6 +58,10 @@ function GuildRank:GetLocalPlayerRankIndex()
     local _, _, rankIndex = GetGuildInfo("player")
     if rankIndex ~= nil then
         return rankIndex
+    end
+    local short = Util:GetShortPlayerName(Util:GetPlayerName())
+    if self.cache[short] ~= nil then
+        return self.cache[short]
     end
     return nil
 end

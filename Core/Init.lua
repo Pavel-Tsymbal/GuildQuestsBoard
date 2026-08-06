@@ -59,6 +59,7 @@ function GQ:OnEnable()
         if Util:GetGuildKey() then
             ns.DB:EnsureGuildStore()
             ns.SyncEngine:OnGuildReady()
+            ns.MainUI:UpdateCreateButtonState()
             if not self.bootstrapped then
                 ns.Scheduler:Start()
                 self.bootstrapped = true
