@@ -81,7 +81,7 @@ function MainUI:Init()
 
     self.deathlogView = CreateFrame("Frame", nil, self.frame)
     self.deathlogView:SetPoint("TOPLEFT", 12, -104)
-    self.deathlogView:SetSize(800, 460)
+    self.deathlogView:SetPoint("BOTTOMRIGHT", -12, 16)
     self.deathlogView:Hide()
 
     self.deathlogScroll = CreateFrame("ScrollFrame", nil, self.deathlogView, "UIPanelScrollFrameTemplate")
@@ -92,7 +92,7 @@ function MainUI:Init()
     self.deathlogScrollChild:SetSize(760, 360)
     self.deathlogScroll:SetScrollChild(self.deathlogScrollChild)
 
-    ns.DeathLogPanel:Init(self.deathlogScrollChild, self.deathlogView)
+    ns.DeathLogPanel:Init(self.deathlogScrollChild, self.deathlogView, self.deathlogScroll)
 
     self.frameTitle:SetText(ns.L["BOARD_TITLE"])
     self.frameCreate:SetText(ns.L["BOARD_CREATE"])

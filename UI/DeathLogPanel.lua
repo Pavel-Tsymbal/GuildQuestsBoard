@@ -6,9 +6,10 @@ ns.DeathLogPanel = DeathLogPanel
 
 DeathLogPanel.rows = {}
 
-function DeathLogPanel:Init(scrollChild, viewFrame)
+function DeathLogPanel:Init(scrollChild, viewFrame, scrollFrame)
     self.scrollChild = scrollChild
     self.viewFrame = viewFrame
+    self.scrollFrame = scrollFrame
 
     self.header = viewFrame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     self.header:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", 4, 8)
@@ -16,8 +17,8 @@ function DeathLogPanel:Init(scrollChild, viewFrame)
     self.header:SetJustifyH("LEFT")
     self.header:SetText(ns.L["DEATHLOG_COLUMNS"])
 
-    self.emptyText = scrollChild:CreateFontString(nil, "OVERLAY", "GameFontDisable")
-    self.emptyText:SetPoint("TOP", scrollChild, "TOP", 0, -80)
+    self.emptyText = viewFrame:CreateFontString(nil, "OVERLAY", "GameFontDisable")
+    self.emptyText:SetPoint("TOP", viewFrame, "TOP", 0, -20)
     self.emptyText:SetWidth(560)
     self.emptyText:SetJustifyH("CENTER")
 
@@ -59,11 +60,38 @@ function DeathLogPanel:Init(scrollChild, viewFrame)
     self.reqBody:SetWidth(740)
     self.reqBody:SetJustifyH("LEFT")
 
+    self:SetupBackground(viewFrame, scrollFrame)
+
     ns.GQ:RegisterCallback("LocaleChanged", function()
         if ns.MainUI and ns.MainUI:IsDeathLogView() then
             self:Refresh()
         end
     end)
+end
+
+function DeathLogPanel:SetupBackground(viewFrame, scrollFrame)
+    local baseLevel = viewFrame:GetFrameLevel()
+
+    self.bgFrame = CreateFrame("Frame", nil, viewFrame)
+    self.bgFrame:SetPoint("TOPLEFT", 0, 0)
+    self.bgFrame:SetPoint("BOTTOMRIGHT", -28, 132)
+    self.bgFrame:SetFrameLevel(baseLevel + 1)
+    self.bgFrame:EnableMouse(false)
+
+    self.bgSkull = self.bgFrame:CreateTexture(nil, "BACKGROUND")
+    -- Target-frame skull art has no item-icon square border.
+    self.bgSkull:SetTexture("Interface\\TargetingFrame\\UI-TargetingFrame-Skull")
+    self.bgSkull:SetSize(320, 320)
+    self.bgSkull:SetPoint("CENTER", 0, -24)
+    self.bgSkull:SetAlpha(0.07)
+    self.bgSkull:SetVertexColor(0.72, 0.66, 0.56)
+
+    if scrollFrame then
+        scrollFrame:SetFrameLevel(baseLevel + 3)
+    end
+    if self.reqPanel then
+        self.reqPanel:SetFrameLevel(baseLevel + 3)
+    end
 end
 
 function DeathLogPanel:IsHardcoreDeathsChannelJoined()
