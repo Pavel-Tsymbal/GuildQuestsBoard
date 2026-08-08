@@ -31,6 +31,9 @@ function Projections:ApplyEvent(event)
     if event.type == C.EVENT.SETTINGS_UPDATED then
         return self:ApplySettingsEvent(event)
     end
+    if event.type == C.EVENT.GUILD_MEMBER_DIED then
+        return self:ApplyDeathEvent(event)
+    end
     if event.type == C.EVENT.QUEST_CREATED then
         return self:ApplyQuestCreated(event)
     end
@@ -55,6 +58,18 @@ function Projections:ApplyQuestDeleted(event)
         return false
     end
     ns.Storage:RemoveQuest(questId)
+    return true
+end
+
+function Projections:ApplyDeathEvent(event)
+    local death = event.payload and event.payload.death
+    if not death then
+        return false
+    end
+    if ns.DeathLogEnricher and not ns.DeathLogEnricher:PassesGuildFilter(death.name, death.guild) then
+        return false
+    end
+    ns.Storage:UpsertDeath(death)
     return true
 end
 
@@ -194,6 +209,7 @@ function Projections:RebuildFromEvents()
         return
     end
     store.quests = {}
+    store.deaths = {}
     store.settings = ns.Schema:DefaultGuildSettings()
     for _, event in ipairs(store.events) do
         self:ApplyEvent(event)

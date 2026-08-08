@@ -17,7 +17,7 @@ function Replicator:ProcessLocalEvent(event)
     if not event.guildKey then
         return false, ns.L["ERR_NOT_IN_GUILD"]
     end
-    if event.type ~= C.EVENT.SETTINGS_UPDATED then
+    if event.type ~= C.EVENT.SETTINGS_UPDATED and event.type ~= C.EVENT.GUILD_MEMBER_DIED then
         local quest = event.payload and event.payload.questId and ns.Storage:GetQuest(event.payload.questId)
         if event.type == C.EVENT.QUEST_CREATED then
             -- no prior quest
@@ -52,7 +52,8 @@ function Replicator:ProcessRemoteEvent(event, sender)
     local quest = event.payload and event.payload.questId and ns.Storage:GetQuest(event.payload.questId)
     if event.type ~= C.EVENT.QUEST_CREATED
         and event.type ~= C.EVENT.SETTINGS_UPDATED
-        and event.type ~= C.EVENT.QUEST_DELETED then
+        and event.type ~= C.EVENT.QUEST_DELETED
+        and event.type ~= C.EVENT.GUILD_MEMBER_DIED then
         if quest and not ns.StateMachine:CanTransition(quest, event.type) then
             if event.type == C.EVENT.QUEST_SUBMITTED and not Util:UsesApprovalWorkflow(quest) then
                 -- per-participant submit does not change quest status
@@ -100,6 +101,18 @@ function Replicator:ApplyEvent(event, isLocal)
     end
     if event.type == C.EVENT.SETTINGS_UPDATED then
         ns.GQ:Fire("GuildSettingsUpdated")
+    end
+    if event.type == C.EVENT.GUILD_MEMBER_DIED then
+        local death = event.payload and event.payload.death
+        if death and death.dedupKey then
+            for _, stored in pairs(ns.Storage:GetDeaths()) do
+                if stored.dedupKey == death.dedupKey then
+                    death = stored
+                    break
+                end
+            end
+        end
+        ns.GQ:Fire("GuildMemberDied", death, isLocal)
     end
     return true, event
 end

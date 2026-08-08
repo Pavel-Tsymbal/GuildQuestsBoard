@@ -65,6 +65,19 @@ function SettingsPanel:ClearContent()
     self.activePanel = nil
 end
 
+function SettingsPanel:AddSectionHeader(parent, localeKey, y, isFirst)
+    if not isFirst then
+        y = y - 14
+    end
+    local title = parent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    title:SetPoint("TOPLEFT", 0, y)
+    title:SetWidth(760)
+    title:SetJustifyH("LEFT")
+    title:SetText("|cffc79c6e" .. ns.L[localeKey] .. "|r")
+    table.insert(parent.widgets, title)
+    return y - 22
+end
+
 function SettingsPanel:AddCheck(parent, label, checked, tipKey, onChange, y)
     local text = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     text:SetPoint("TOPLEFT", 0, y)
@@ -111,8 +124,10 @@ function SettingsPanel:ShowPersonal()
     panel.widgets = {}
     self.activePanel = panel
     local db = ns.PersonalSettings:Get()
+    local deathSettings = ns.PersonalSettings:GetDeathNotifications()
     local y = 0
 
+    y = self:AddSectionHeader(panel, "SETTINGS_SECTION_QUEST_NOTIFICATIONS", y, true)
     y = self:AddCheck(panel, ns.L["SETTINGS_NOTIFICATIONS"], db.notifications.enabled, "PERSONAL_NOTIFICATIONS", function(v)
         ns.PersonalSettings:SetNotifications("enabled", v)
     end, y)
@@ -129,6 +144,20 @@ function SettingsPanel:ShowPersonal()
         ns.PersonalSettings:SetNotifications("showInCombat", v)
     end, y)
 
+    y = self:AddSectionHeader(panel, "SETTINGS_SECTION_DEATH_NOTIFICATIONS", y)
+    y = self:AddCheck(panel, ns.L["SETTINGS_DEATH_NOTIFICATIONS"], deathSettings.enabled, "PERSONAL_DEATH_NOTIFICATIONS", function(v)
+        ns.PersonalSettings:SetDeathNotifications("enabled", v)
+    end, y)
+
+    y = self:AddCheck(panel, ns.L["SETTINGS_DEATH_NOTIFICATION_SOUND"], deathSettings.sound, "PERSONAL_DEATH_SOUND", function(v)
+        ns.PersonalSettings:SetDeathNotifications("sound", v)
+    end, y)
+
+    y = self:AddCheck(panel, ns.L["SETTINGS_DEATH_NOTIFICATION_COMBAT"], deathSettings.showInCombat, "PERSONAL_DEATH_COMBAT", function(v)
+        ns.PersonalSettings:SetDeathNotifications("showInCombat", v)
+    end, y)
+
+    y = self:AddSectionHeader(panel, "SETTINGS_SECTION_GENERAL", y)
     y = self:AddCheck(panel, ns.L["SETTINGS_MINIMAP"], db.ui.minimap.hide, "PERSONAL_LOCALE", function(v)
         ns.PersonalSettings:SetMinimapHidden(v)
         ns.Minimap:Refresh()

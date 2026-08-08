@@ -54,3 +54,32 @@ function PersonalSettings:ShouldShowNotification()
     end
     return true
 end
+
+function PersonalSettings:GetDeathNotifications()
+    local db = self:Get()
+    local defaults = Schema:DefaultCharSettings().deathNotifications
+    db.deathNotifications = db.deathNotifications or {}
+    for key, value in pairs(defaults) do
+        if db.deathNotifications[key] == nil then
+            db.deathNotifications[key] = value
+        end
+    end
+    return db.deathNotifications
+end
+
+function PersonalSettings:SetDeathNotifications(key, value)
+    local settings = self:GetDeathNotifications()
+    settings[key] = value
+    ns.GQ:Fire("PersonalSettingsChanged")
+end
+
+function PersonalSettings:ShouldShowDeathNotification()
+    local settings = self:GetDeathNotifications()
+    if settings.enabled == false then
+        return false
+    end
+    if not settings.showInCombat and ns.Util:IsInCombat() then
+        return false
+    end
+    return IsInGuild()
+end

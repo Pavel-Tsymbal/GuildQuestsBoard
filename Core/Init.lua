@@ -37,6 +37,7 @@ function GQ:OnInitialize()
     ns.NotifyQueue = ns.Queue
     ns.Queue:Init()
     ns.Toast:Init()
+    ns.DeathLog:Init()
     ns.UI = ns.MainUI
     ns.MainUI:Init()
     ns.QuestList:Init()

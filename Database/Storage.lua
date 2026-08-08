@@ -1,4 +1,5 @@
 local _, ns = ...
+local C = ns.Constants
 local Util = ns.Util
 local Schema = ns.Schema
 
@@ -47,6 +48,7 @@ function Storage:EnsureGuildStore()
     local store = GuildQuestsDB.guilds[guildKey]
     store.settings = store.settings or Schema:DefaultGuildSettings()
     store.quests = store.quests or {}
+    store.deaths = store.deaths or {}
     store.events = store.events or {}
     store.seenEventIds = store.seenEventIds or {}
     store.logicalClock = store.logicalClock or 0
@@ -179,6 +181,129 @@ function Storage:GetEventsSince(lamport)
     end
     table.sort(result, Util.CompareEventOrder)
     return result
+end
+
+function Storage:GetDeaths()
+    local store = self:GetGuildStore()
+    if not store then
+        return {}
+    end
+    return store.deaths or {}
+end
+
+function Storage:MakeDeathDedupKey(death)
+    if not death or not death.name then
+        return nil
+    end
+    local bucket = math.floor((tonumber(death.date) or 0) / C.DEATHLOG_DEDUP_WINDOW)
+    return string.lower(Util:GetShortPlayerName(death.name) or death.name) .. "|" .. (death.realm or "") .. "|" .. bucket
+end
+
+function Storage:FindDeathForMerge(death)
+    if not death or not death.name then
+        return nil, nil
+    end
+
+    local dedupKey = death.dedupKey or self:MakeDeathDedupKey(death)
+    local targetName = string.lower(Util:SanitizePlayerName(death.name) or death.name or "")
+    local targetDate = tonumber(death.date) or 0
+
+    for id, existing in pairs(self:GetDeaths()) do
+        if dedupKey and existing.dedupKey == dedupKey then
+            return existing, id
+        end
+    end
+
+    for id, existing in pairs(self:GetDeaths()) do
+        local existingName = string.lower(Util:SanitizePlayerName(existing.name) or existing.name or "")
+        if existingName == targetName then
+            local existingDate = tonumber(existing.date) or 0
+            if math.abs(existingDate - targetDate) <= C.DEATHLOG_DEDUP_WINDOW then
+                return existing, id
+            end
+        end
+    end
+
+    return nil, nil
+end
+
+function Storage:MergeDeath(existing, incoming)
+    local merged = Util:CopyTable(existing)
+    local fields = { "level", "classId", "raceId", "guild", "source", "zone", "mapId", "date", "reportedBy", "quality" }
+    for _, field in ipairs(fields) do
+        local value = incoming[field]
+        if value ~= nil and value ~= "" and value ~= 0 then
+            if field == "quality" then
+                if value == "full" or merged.quality ~= "full" then
+                    merged.quality = value
+                end
+            else
+                merged[field] = value
+            end
+        end
+    end
+    if not merged.dedupKey then
+        merged.dedupKey = self:MakeDeathDedupKey(merged)
+    end
+    return merged
+end
+
+function Storage:UpsertDeath(death)
+    local store = self:GetGuildStore()
+    if not store or not death or not death.id then
+        return nil
+    end
+    store.deaths = store.deaths or {}
+    death.dedupKey = death.dedupKey or self:MakeDeathDedupKey(death)
+    for id, existing in pairs(store.deaths) do
+        if existing.dedupKey and death.dedupKey and existing.dedupKey == death.dedupKey then
+            store.deaths[id] = self:MergeDeath(existing, death)
+            self:PruneDeaths()
+            return id
+        end
+    end
+    store.deaths[death.id] = death
+    self:PruneDeaths()
+    return death.id
+end
+
+function Storage:PruneDeaths()
+    local store = self:GetGuildStore()
+    if not store or not store.deaths then
+        return
+    end
+    local list = {}
+    for id, death in pairs(store.deaths) do
+        list[#list + 1] = { id = id, death = death }
+    end
+    if #list <= C.DEATHLOG_STORE_MAX then
+        return
+    end
+    table.sort(list, function(a, b)
+        return (tonumber(a.death.date) or 0) > (tonumber(b.death.date) or 0)
+    end)
+    for i = C.DEATHLOG_STORE_MAX + 1, #list do
+        store.deaths[list[i].id] = nil
+    end
+end
+
+function Storage:GetDeathList(limit)
+    local deaths = self:GetDeaths()
+    local list = {}
+    for _, death in pairs(deaths) do
+        list[#list + 1] = death
+    end
+    table.sort(list, function(a, b)
+        return (tonumber(a.date) or 0) > (tonumber(b.date) or 0)
+    end)
+    if limit and #list > limit then
+        local trimmed = {}
+        for i = 1, limit do
+            trimmed[i] = list[i]
+        end
+        return trimmed, #list
+    end
+    return list, #list
 end
 
 function Storage:OnGuildLeft()

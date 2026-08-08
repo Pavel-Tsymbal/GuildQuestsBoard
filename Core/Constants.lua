@@ -3,7 +3,7 @@ ns.Constants = {
     ADDON_NAME = "GuildQuests",
     VERSION = "1.0.0",
     COMM_PREFIX = "GuildQuests",
-    SCHEMA_VERSION = 1,
+    SCHEMA_VERSION = 2,
 
     HEARTBEAT_INTERVAL = 45,
     HEARTBEAT_TIMEOUT = 90,
@@ -22,6 +22,10 @@ ns.Constants = {
     MAX_PARTICIPANTS = 40,
     MAX_LEVEL = 60,
     MAX_ITEM_REWARDS = 5,
+
+    DEATHLOG_DISPLAY_MAX = 50,
+    DEATHLOG_STORE_MAX = 200,
+    DEATHLOG_DEDUP_WINDOW = 120,
 
     TIME_MODE = {
         NONE = "NONE",
@@ -74,6 +78,7 @@ ns.Constants = {
         QUEST_SCHEDULE_STARTED = "QUEST_SCHEDULE_STARTED",
         REWARD_PAID = "REWARD_PAID",
         SETTINGS_UPDATED = "SETTINGS_UPDATED",
+        GUILD_MEMBER_DIED = "GUILD_MEMBER_DIED",
     },
 
     OPCODE = {

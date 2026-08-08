@@ -6,6 +6,8 @@
 ## SavedVariables: GuildQuestsDB
 ## SavedVariablesPerCharacter: GuildQuestsCharDB
 
+## OptionalDeps: DeathNotificationLib
+
 embeds.xml
 
 Core\Constants.lua
@@ -42,6 +44,11 @@ History\Logger.lua
 Settings\Tooltips.lua
 Settings\PersonalSettings.lua
 Settings\GuildSettings.lua
+
+DeathLog\Enricher.lua
+DeathLog\Collector.lua
+DeathLog\DeathLog.lua
+DeathLog\Notifier.lua
 
 Notifications\Queue.lua
 Notifications\Toast.lua

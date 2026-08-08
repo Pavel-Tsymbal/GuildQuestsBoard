@@ -45,7 +45,58 @@ function Util:GetShortPlayerName(fullName)
     if not fullName then
         return nil
     end
+    if type(fullName) ~= "string" then
+        if type(fullName) == "table" then
+            fullName = fullName.fullName or fullName.name
+        end
+        if type(fullName) ~= "string" then
+            return nil
+        end
+    end
     return (fullName:match("^([^%-]+)")) or fullName
+end
+
+function Util:StripChatLinks(text)
+    if not text or text == "" then
+        return ""
+    end
+    text = text:gsub("|c%x%x%x%x%x%x%x%x|H.-|h%[(.-)%]|h|r?", "%1")
+    text = text:gsub("|H.-|h%[(.-)%]|h", "%1")
+    text = text:gsub("|H.-|h([^|]+)|h", "%1")
+    text = text:gsub("|r", "")
+    return text
+end
+
+function Util:ExtractPlayerLinkName(text)
+    if not text then
+        return nil
+    end
+    local linkName = text:match("|Hplayer:([^|%[]+)")
+    if linkName then
+        return self:GetShortPlayerName(linkName)
+    end
+    return nil
+end
+
+function Util:SanitizePlayerName(name)
+    if not name then
+        return nil
+    end
+    if type(name) ~= "string" then
+        if type(name) == "table" then
+            name = name.fullName or name.name
+        end
+        if type(name) ~= "string" then
+            return nil
+        end
+    end
+    local linkName = self:ExtractPlayerLinkName(name)
+    if linkName then
+        return linkName
+    end
+    name = self:StripChatLinks(name)
+    name = self:Trim(name)
+    return self:GetShortPlayerName(name) or name
 end
 
 function Util:FindParticipantKey(quest, playerName)

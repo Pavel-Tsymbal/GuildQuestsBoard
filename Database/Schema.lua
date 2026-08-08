@@ -36,11 +36,37 @@ function Schema:DefaultCharSettings()
             sound = true,
             showInCombat = false,
         },
+        deathNotifications = {
+            enabled = true,
+            sound = true,
+            showInCombat = true,
+        },
         ui = {
             minimap = { hide = false, angle = 220 },
             windowPositions = {},
         },
         dismissedNotifications = {},
+    }
+end
+
+function Schema:NewDeathRecord(data)
+    local now = Util:Now()
+    data = data or {}
+    return {
+        id = data.id or Util:GenerateUUID(),
+        name = data.name,
+        realm = data.realm or Util:GetRealmName(),
+        level = data.level or 0,
+        classId = data.classId,
+        raceId = data.raceId,
+        guild = data.guild,
+        source = data.source or "",
+        zone = data.zone or "",
+        mapId = data.mapId,
+        date = data.date or now,
+        reportedBy = data.reportedBy,
+        quality = data.quality or "partial",
+        dedupKey = data.dedupKey,
     }
 end
 
@@ -90,6 +116,7 @@ function Schema:DefaultGuildStore()
         stateHash = "0",
         settings = self:DefaultGuildSettings(),
         quests = {},
+        deaths = {},
         events = {},
         seenEventIds = {},
     }
