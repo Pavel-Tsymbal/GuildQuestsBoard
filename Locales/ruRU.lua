@@ -19,6 +19,7 @@ local L = {
     BOARD_TITLE = "Доска гильдейских заданий",
     MAIN_TAB_BOARD = "Доска",
     MAIN_TAB_ACHIEVEMENTS = "Достижения",
+    ACHIEVEMENTS_WIP_NOTICE = "Достижения находятся в разработке.",
     MAIN_TAB_DEATHLOG = "Логи смертей",
     MAIN_TAB_SETTINGS = "Настройки",
     DEATHLOG_EMPTY = "Нет записей о смертях участников вашей гильдии на этом сервере.",

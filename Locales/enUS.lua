@@ -19,6 +19,7 @@ local L = {
     BOARD_TITLE = "Guild Quest Board",
     MAIN_TAB_BOARD = "Board",
     MAIN_TAB_ACHIEVEMENTS = "Achievements",
+    ACHIEVEMENTS_WIP_NOTICE = "Achievements are in development.",
     MAIN_TAB_DEATHLOG = "Death Log",
     MAIN_TAB_SETTINGS = "Settings",
     DEATHLOG_EMPTY = "No death records for your guild on this realm.",

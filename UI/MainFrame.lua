@@ -73,6 +73,12 @@ function MainUI:Init()
     self.achievementsView:SetSize(800, 460)
     self.achievementsView:Hide()
 
+    self.achievementsWip = self.achievementsView:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    self.achievementsWip:SetPoint("CENTER")
+    self.achievementsWip:SetWidth(760)
+    self.achievementsWip:SetJustifyH("CENTER")
+    self.achievementsWip:SetText("|cffffcc00" .. ns.L["ACHIEVEMENTS_WIP_NOTICE"] .. "|r")
+
     self.deathlogView = CreateFrame("Frame", nil, self.frame)
     self.deathlogView:SetPoint("TOPLEFT", 12, -104)
     self.deathlogView:SetSize(800, 460)
@@ -243,6 +249,9 @@ function MainUI:UpdateTexts()
     self.frameEmpty:SetText(ns.L["BOARD_EMPTY"])
     if self.frameSearch.SetPlaceholderText then
         self.frameSearch:SetPlaceholderText(ns.L["SEARCH_PLACEHOLDER"])
+    end
+    if self.achievementsWip then
+        self.achievementsWip:SetText("|cffffcc00" .. ns.L["ACHIEVEMENTS_WIP_NOTICE"] .. "|r")
     end
     if self.activeView == "board" then
         self.frameTitle:SetText(ns.L["BOARD_TITLE"])
