@@ -55,4 +55,5 @@ UI\DateTimePicker.lua
 UI\CreateQuest.lua
 UI\SearchFilter.lua
 UI\SettingsPanel.lua
+UI\DeathLogPanel.lua
 UI\Minimap.lua

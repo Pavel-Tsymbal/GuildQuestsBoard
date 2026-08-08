@@ -37,9 +37,17 @@ function MainUI:Init()
         self:ShowAchievementsView()
     end)
 
+    self.tabDeathLog = CreateFrame("Button", nil, self.frame, "UIPanelButtonTemplate")
+    self.tabDeathLog:SetSize(110, 22)
+    self.tabDeathLog:SetPoint("LEFT", self.tabAchievements, "RIGHT", 8, 0)
+    self.tabDeathLog:SetText(ns.L["MAIN_TAB_DEATHLOG"])
+    self.tabDeathLog:SetScript("OnClick", function()
+        self:ShowDeathLogView()
+    end)
+
     self.tabSettings = CreateFrame("Button", nil, self.frame, "UIPanelButtonTemplate")
     self.tabSettings:SetSize(110, 22)
-    self.tabSettings:SetPoint("LEFT", self.tabAchievements, "RIGHT", 8, 0)
+    self.tabSettings:SetPoint("LEFT", self.tabDeathLog, "RIGHT", 8, 0)
     self.tabSettings:SetText(ns.L["MAIN_TAB_SETTINGS"])
     self.tabSettings:SetScript("OnClick", function()
         self:ShowSettingsView()
@@ -64,6 +72,21 @@ function MainUI:Init()
     self.achievementsView:SetPoint("TOPLEFT", 12, -104)
     self.achievementsView:SetSize(800, 460)
     self.achievementsView:Hide()
+
+    self.deathlogView = CreateFrame("Frame", nil, self.frame)
+    self.deathlogView:SetPoint("TOPLEFT", 12, -104)
+    self.deathlogView:SetSize(800, 460)
+    self.deathlogView:Hide()
+
+    self.deathlogScroll = CreateFrame("ScrollFrame", nil, self.deathlogView, "UIPanelScrollFrameTemplate")
+    self.deathlogScroll:SetPoint("TOPLEFT", 0, 0)
+    self.deathlogScroll:SetPoint("BOTTOMRIGHT", 0, 0)
+
+    self.deathlogScrollChild = CreateFrame("Frame", nil, self.deathlogScroll)
+    self.deathlogScrollChild:SetSize(760, 360)
+    self.deathlogScroll:SetScrollChild(self.deathlogScrollChild)
+
+    ns.DeathLogPanel:Init(self.deathlogScrollChild, self.deathlogView)
 
     self.frameTitle:SetText(ns.L["BOARD_TITLE"])
     self.frameCreate:SetText(ns.L["BOARD_CREATE"])
@@ -132,6 +155,17 @@ function MainUI:Init()
     self:UpdateCreateButtonState()
 end
 
+function MainUI:LayoutCreateButton()
+    if not self.frameCreate or not self.filterBar then
+        return
+    end
+    self.frameCreate:SetParent(self.filterBar)
+    self.frameCreate:ClearAllPoints()
+    self.frameCreate:SetPoint("RIGHT", self.filterBar, "RIGHT", 0, 0)
+    self.frameCreate:SetFrameLevel(self.filterBar:GetFrameLevel() + 20)
+    self.frameCreate:Raise()
+end
+
 function MainUI:SetupCreateButtonTooltip()
     local btn = self.frameCreate
     if not btn then
@@ -172,8 +206,10 @@ function MainUI:UpdateCreateButtonState()
     self.frameCreate:SetEnabled(canCreate)
     if self.frameCreateTooltipOverlay then
         if canCreate then
+            self.frameCreateTooltipOverlay:EnableMouse(false)
             self.frameCreateTooltipOverlay:Hide()
         else
+            self.frameCreateTooltipOverlay:EnableMouse(true)
             self.frameCreateTooltipOverlay:Show()
         end
     end
@@ -187,15 +223,21 @@ function MainUI:IsAchievementsView()
     return self.activeView == "achievements"
 end
 
+function MainUI:IsDeathLogView()
+    return self.activeView == "deathlog"
+end
+
 function MainUI:UpdateTabHighlight()
     self.tabBoard:SetEnabled(self.activeView ~= "board")
     self.tabAchievements:SetEnabled(self.activeView ~= "achievements")
+    self.tabDeathLog:SetEnabled(self.activeView ~= "deathlog")
     self.tabSettings:SetEnabled(self.activeView ~= "settings")
 end
 
 function MainUI:UpdateTexts()
     self.tabBoard:SetText(ns.L["MAIN_TAB_BOARD"])
     self.tabAchievements:SetText(ns.L["MAIN_TAB_ACHIEVEMENTS"])
+    self.tabDeathLog:SetText(ns.L["MAIN_TAB_DEATHLOG"])
     self.tabSettings:SetText(ns.L["MAIN_TAB_SETTINGS"])
     self.frameCreate:SetText(ns.L["BOARD_CREATE"])
     self.frameEmpty:SetText(ns.L["BOARD_EMPTY"])
@@ -206,6 +248,8 @@ function MainUI:UpdateTexts()
         self.frameTitle:SetText(ns.L["BOARD_TITLE"])
     elseif self.activeView == "achievements" then
         self.frameTitle:SetText(ns.L["MAIN_TAB_ACHIEVEMENTS"])
+    elseif self.activeView == "deathlog" then
+        self.frameTitle:SetText(ns.L["MAIN_TAB_DEATHLOG"])
     else
         self.frameTitle:SetText(ns.L["SETTINGS_TITLE"])
     end
@@ -226,6 +270,7 @@ function MainUI:ShowBoardView()
     self.activeView = "board"
     self.settingsView:Hide()
     self.achievementsView:Hide()
+    self.deathlogView:Hide()
     self:SetBoardWidgetsShown(true, true)
     self.frameTitle:SetText(ns.L["BOARD_TITLE"])
     self:UpdateTabHighlight()
@@ -236,15 +281,28 @@ end
 function MainUI:ShowAchievementsView()
     self.activeView = "achievements"
     self.settingsView:Hide()
+    self.deathlogView:Hide()
     self.achievementsView:Show()
     self:SetBoardWidgetsShown(false)
     self.frameTitle:SetText(ns.L["MAIN_TAB_ACHIEVEMENTS"])
     self:UpdateTabHighlight()
 end
 
+function MainUI:ShowDeathLogView()
+    self.activeView = "deathlog"
+    self.settingsView:Hide()
+    self.achievementsView:Hide()
+    self.deathlogView:Show()
+    self:SetBoardWidgetsShown(false)
+    self.frameTitle:SetText(ns.L["MAIN_TAB_DEATHLOG"])
+    self:UpdateTabHighlight()
+    ns.DeathLogPanel:Refresh()
+end
+
 function MainUI:ShowSettingsView()
     self.activeView = "settings"
     self.achievementsView:Hide()
+    self.deathlogView:Hide()
     self:SetBoardWidgetsShown(false)
     self.settingsView:Show()
     self.frameTitle:SetText(ns.L["SETTINGS_TITLE"])
@@ -265,6 +323,8 @@ function MainUI:Show()
         self:ShowSettingsView()
     elseif self.activeView == "achievements" then
         self:ShowAchievementsView()
+    elseif self.activeView == "deathlog" then
+        self:ShowDeathLogView()
     else
         self:ShowBoardView()
     end

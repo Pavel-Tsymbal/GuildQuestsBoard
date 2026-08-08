@@ -19,24 +19,24 @@
                     <Anchor point="TOPRIGHT" x="-4" y="-4"/>
                 </Anchors>
             </Button>
-            <Button name="$parentCreate" inherits="UIPanelButtonTemplate" text="Create">
-                <Size x="150" y="24"/>
-                <Anchors>
-                    <Anchor point="TOPRIGHT" x="-36" y="-10"/>
-                </Anchors>
-            </Button>
             <EditBox name="$parentSearch" inherits="InputBoxTemplate" autoFocus="false">
                 <Size x="300" y="24"/>
                 <Anchors>
                     <Anchor point="TOPLEFT" x="16" y="-42"/>
                 </Anchors>
             </EditBox>
-            <Frame name="$parentFilterBar" enableMouse="true">
+            <Frame name="$parentFilterBar" enableMouse="false">
                 <Size x="800" y="28"/>
                 <Anchors>
                     <Anchor point="TOPLEFT" x="16" y="-72"/>
                 </Anchors>
             </Frame>
+            <Button name="$parentCreate" inherits="UIPanelButtonTemplate" text="Create">
+                <Size x="150" y="22"/>
+                <Anchors>
+                    <Anchor point="RIGHT" relativeTo="$parentFilterBar" relativePoint="RIGHT"/>
+                </Anchors>
+            </Button>
             <ScrollFrame name="$parentScroll" inherits="UIPanelScrollFrameTemplate">
                 <Size x="800" y="460"/>
                 <Anchors>

@@ -43,6 +43,7 @@ function GQ:OnInitialize()
     ns.QuestDetail:Init()
     ns.CreateQuest:Init()
     ns.SearchFilter:Init()
+    ns.MainUI:LayoutCreateButton()
     ns.Minimap:Init()
 
     SLASH_GUILDQUESTS1 = "/gq"
