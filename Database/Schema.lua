@@ -46,6 +46,11 @@ function Schema:DefaultCharSettings()
             windowPositions = {},
         },
         dismissedNotifications = {},
+        achievements = {},
+        achievementFilters = {
+            excludeAlliance = false,
+            excludeHorde = false,
+        },
     }
 end
 

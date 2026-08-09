@@ -18,6 +18,8 @@ function GQ:OnInitialize()
     ns.DB:Init()
     ns.Locale:Init()
     ns.PersonalSettings:Init()
+    ns.AchievementTracker:Init()
+    ns.AchievementNotifier:Init()
     ns.GuildRank:Init()
     ns.Permissions = ns.Rules
     ns.Projections:Init()
@@ -116,9 +118,25 @@ function GQ:SlashCommand(input)
             ns.Rules:SetDebugGuildMaster(enabled)
             self:Print(enabled and ns.L["SLASH_TESTGM_ON"] or ns.L["SLASH_TESTGM_OFF"])
         end
+    elseif input == "testachiev" or input == "testachievement" then
+        self:TestAchievementNotify(Util:Trim((input:match("^testachiev%s+(.+)$") or input:match("^testachievement%s+(.+)$") or "")))
     else
         self:Print(ns.L["SLASH_HELP"])
     end
+end
+
+function GQ:TestAchievementNotify(query)
+    if query ~= "" and not ns.AchievementNotifier:ShowTest(query) then
+        self:Print(string.format(ns.L["SLASH_TESTACHIEV_UNKNOWN"], query))
+        return
+    end
+    if query == "" then
+        local entry = ns.AchievementCatalog:GetDefaultTestEntry()
+        if entry then
+            ns.AchievementNotifier:Show(entry)
+        end
+    end
+    self:Print(ns.L["SLASH_TESTACHIEV"])
 end
 
 function GQ:Fire(event, ...)

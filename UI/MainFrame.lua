@@ -70,14 +70,32 @@ function MainUI:Init()
 
     self.achievementsView = CreateFrame("Frame", nil, self.frame)
     self.achievementsView:SetPoint("TOPLEFT", 12, -104)
-    self.achievementsView:SetSize(800, 460)
+    self.achievementsView:SetPoint("BOTTOMRIGHT", -12, 16)
     self.achievementsView:Hide()
 
-    self.achievementsWip = self.achievementsView:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    self.achievementsWip:SetPoint("CENTER")
-    self.achievementsWip:SetWidth(760)
-    self.achievementsWip:SetJustifyH("CENTER")
-    self.achievementsWip:SetText("|cffffcc00" .. ns.L["ACHIEVEMENTS_WIP_NOTICE"] .. "|r")
+    self.achievementsEarnedScroll = CreateFrame("ScrollFrame", nil, self.achievementsView, "UIPanelScrollFrameTemplate")
+    self.achievementsEarnedScroll:SetPoint("TOPLEFT", 0, 0)
+    self.achievementsEarnedScroll:SetPoint("BOTTOMRIGHT", self.achievementsView, "TOPRIGHT", -28, -210)
+
+    self.achievementsEarnedScrollChild = CreateFrame("Frame", nil, self.achievementsEarnedScroll)
+    self.achievementsEarnedScrollChild:SetSize(760, 180)
+    self.achievementsEarnedScroll:SetScrollChild(self.achievementsEarnedScrollChild)
+
+    self.achievementsCatalogScroll = CreateFrame("ScrollFrame", nil, self.achievementsView, "UIPanelScrollFrameTemplate")
+    self.achievementsCatalogScroll:SetPoint("BOTTOMRIGHT", -28, 0)
+
+    self.achievementsCatalogScrollChild = CreateFrame("Frame", nil, self.achievementsCatalogScroll)
+    self.achievementsCatalogScrollChild:SetSize(760, 180)
+    self.achievementsCatalogScroll:SetScrollChild(self.achievementsCatalogScrollChild)
+
+    ns.AchievementsPanel:Init(
+        self.achievementsEarnedScroll,
+        self.achievementsEarnedScrollChild,
+        self.achievementsCatalogScroll,
+        self.achievementsCatalogScrollChild,
+        self.achievementsView
+    )
+    ns.AchievementsPanel:SetDividerAnchor(self.achievementsEarnedScroll)
 
     self.deathlogView = CreateFrame("Frame", nil, self.frame)
     self.deathlogView:SetPoint("TOPLEFT", 12, -104)
@@ -250,9 +268,6 @@ function MainUI:UpdateTexts()
     if self.frameSearch.SetPlaceholderText then
         self.frameSearch:SetPlaceholderText(ns.L["SEARCH_PLACEHOLDER"])
     end
-    if self.achievementsWip then
-        self.achievementsWip:SetText("|cffffcc00" .. ns.L["ACHIEVEMENTS_WIP_NOTICE"] .. "|r")
-    end
     if self.activeView == "board" then
         self.frameTitle:SetText(ns.L["BOARD_TITLE"])
     elseif self.activeView == "achievements" then
@@ -295,6 +310,7 @@ function MainUI:ShowAchievementsView()
     self:SetBoardWidgetsShown(false)
     self.frameTitle:SetText(ns.L["MAIN_TAB_ACHIEVEMENTS"])
     self:UpdateTabHighlight()
+    ns.AchievementsPanel:Refresh()
 end
 
 function MainUI:ShowDeathLogView()

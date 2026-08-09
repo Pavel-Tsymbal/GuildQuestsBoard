@@ -50,6 +50,11 @@ DeathLog\Collector.lua
 DeathLog\DeathLog.lua
 DeathLog\Notifier.lua
 
+Achievements\CatalogQuests.lua
+Achievements\Storage.lua
+Achievements\Tracker.lua
+Achievements\Notifier.lua
+
 Notifications\Queue.lua
 Notifications\Toast.lua
 
@@ -62,5 +67,6 @@ UI\DateTimePicker.lua
 UI\CreateQuest.lua
 UI\SearchFilter.lua
 UI\SettingsPanel.lua
+UI\AchievementsPanel.lua
 UI\DeathLogPanel.lua
 UI\Minimap.lua
