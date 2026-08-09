@@ -3,8 +3,23 @@ local _, ns = ...
 local Catalog = {}
 ns.AchievementCatalog = Catalog
 
+Catalog.allById = {}
 Catalog.questById = {}
 Catalog.questByQuestId = {}
+Catalog.speedrunByTargetLevel = {}
+
+local SPEEDRUN_ICON = "Interface\\Icons\\Ability_Rogue_Sprint"
+
+local SPEEDRUN_ACHIEVEMENTS = {
+    { id = "SpeedrunnerTen", type = "speedrun", faction = "Common", levelCap = 10, targetLevel = 10, playedTimeThreshold = 2 * 60 * 60, icon = SPEEDRUN_ICON },
+    { id = "SpeedrunnerFifteen", type = "speedrun", faction = "Common", levelCap = 15, targetLevel = 15, playedTimeThreshold = 10 * 60 * 60, icon = SPEEDRUN_ICON },
+    { id = "SpeedrunnerTwenty", type = "speedrun", faction = "Common", levelCap = 20, targetLevel = 20, playedTimeThreshold = 12 * 60 * 60, icon = SPEEDRUN_ICON },
+    { id = "SpeedrunnerThirty", type = "speedrun", faction = "Common", levelCap = 30, targetLevel = 30, playedTimeThreshold = 27 * 60 * 60, icon = SPEEDRUN_ICON },
+    { id = "SpeedrunnerForty", type = "speedrun", faction = "Common", levelCap = 40, targetLevel = 40, playedTimeThreshold = 50 * 60 * 60, icon = SPEEDRUN_ICON },
+    { id = "SpeedrunnerFortyFive", type = "speedrun", faction = "Common", levelCap = 45, targetLevel = 45, playedTimeThreshold = 65 * 60 * 60, icon = SPEEDRUN_ICON },
+    { id = "SpeedrunnerFifty", type = "speedrun", faction = "Common", levelCap = 50, targetLevel = 50, playedTimeThreshold = 81 * 60 * 60, icon = SPEEDRUN_ICON },
+    { id = "SpeedrunnerSixty", type = "speedrun", faction = "Common", levelCap = 60, targetLevel = 60, playedTimeThreshold = 120 * 60 * 60, icon = SPEEDRUN_ICON },
+}
 
 local QUEST_ACHIEVEMENTS = {
     { id = "DruidOfTheClawQuest", faction = "Alliance", questId = 2561, levelCap = 9, zone = "Teldrassil", questName = "Druid of the Claw", icon = "Interface\\Icons\\Ability_Druid_CatForm" },
@@ -53,11 +68,18 @@ local QUEST_ACHIEVEMENTS = {
 }
 
 for _, entry in ipairs(QUEST_ACHIEVEMENTS) do
+    entry.type = entry.type or "quest"
+    Catalog.allById[entry.id] = entry
     Catalog.questById[entry.id] = entry
     Catalog.questByQuestId[entry.questId] = entry
     if entry.questIdAlt then
         Catalog.questByQuestId[entry.questIdAlt] = entry
     end
+end
+
+for _, entry in ipairs(SPEEDRUN_ACHIEVEMENTS) do
+    Catalog.allById[entry.id] = entry
+    Catalog.speedrunByTargetLevel[entry.targetLevel] = entry
 end
 
 function Catalog:GetPlayerFaction()
@@ -88,16 +110,13 @@ function Catalog:PassesFilter(entry, filters)
     if filters.excludeHorde and entry.faction == "Horde" then
         return false
     end
+    if filters.excludeSpeedrun and entry.type == "speedrun" then
+        return false
+    end
     return true
 end
 
-function Catalog:GetQuestAchievements(filters)
-    local list = {}
-    for _, entry in ipairs(QUEST_ACHIEVEMENTS) do
-        if self:PassesFilter(entry, filters) then
-            list[#list + 1] = entry
-        end
-    end
+function Catalog:SortEntries(list)
     table.sort(list, function(a, b)
         if a.levelCap ~= b.levelCap then
             return a.levelCap < b.levelCap
@@ -105,6 +124,25 @@ function Catalog:GetQuestAchievements(filters)
         return self:GetTitle(a) < self:GetTitle(b)
     end)
     return list
+end
+
+function Catalog:GetAchievements(filters)
+    local list = {}
+    for _, entry in ipairs(QUEST_ACHIEVEMENTS) do
+        if self:PassesFilter(entry, filters) then
+            list[#list + 1] = entry
+        end
+    end
+    for _, entry in ipairs(SPEEDRUN_ACHIEVEMENTS) do
+        if self:PassesFilter(entry, filters) then
+            list[#list + 1] = entry
+        end
+    end
+    return self:SortEntries(list)
+end
+
+function Catalog:GetQuestAchievements(filters)
+    return self:GetAchievements(filters)
 end
 
 function Catalog:GetHordeQuests()
@@ -120,24 +158,28 @@ function Catalog:FindByQuery(query)
     if exact then
         return exact
     end
-    for id, entry in pairs(self.questById) do
+    for id, entry in pairs(self.allById) do
         if id:lower() == query then
             return entry
         end
     end
-    for id, entry in pairs(self.questById) do
+    for id, entry in pairs(self.allById) do
         if id:lower():find(query, 1, true) then
             return entry
         end
     end
 end
 
+function Catalog:GetSpeedrunByTargetLevel(level)
+    return self.speedrunByTargetLevel[tonumber(level)]
+end
+
 function Catalog:GetDefaultTestEntry()
-    return self:GetById("StinkysEscape") or self:GetQuestAchievements({})[1]
+    return self:GetById("StinkysEscape") or self:GetAchievements({})[1]
 end
 
 function Catalog:GetById(id)
-    return self.questById[id]
+    return self.allById[id]
 end
 
 function Catalog:GetByQuestId(questId)
@@ -164,11 +206,24 @@ function Catalog:GetLevelCapText(entry)
     if not entry then
         return ""
     end
+    if entry.type == "speedrun" then
+        return string.format(
+            ns.L["ACHIEV_SPEEDRUN_META"],
+            entry.targetLevel or entry.levelCap,
+            (entry.playedTimeThreshold or 0) / 3600
+        )
+    end
     return string.format(ns.L["ACHIEV_LEVEL_CAP"], entry.levelCap + 1)
 end
 
 function Catalog:GetFactionLabel(entry)
-    if not entry or not entry.faction then
+    if not entry then
+        return ""
+    end
+    if entry.type == "speedrun" then
+        return ns.L["ACHIEV_TYPE_SPEEDRUN"]
+    end
+    if not entry.faction then
         return ""
     end
     if entry.faction == "Horde" then
@@ -181,7 +236,13 @@ function Catalog:GetFactionLabel(entry)
 end
 
 function Catalog:GetFactionColor(entry)
-    if not entry or not entry.faction then
+    if not entry then
+        return 0.7, 0.7, 0.7
+    end
+    if entry.type == "speedrun" then
+        return 1.0, 0.55, 0.0
+    end
+    if not entry.faction then
         return 0.7, 0.7, 0.7
     end
     if entry.faction == "Horde" then

@@ -118,8 +118,9 @@ function GQ:SlashCommand(input)
             ns.Rules:SetDebugGuildMaster(enabled)
             self:Print(enabled and ns.L["SLASH_TESTGM_ON"] or ns.L["SLASH_TESTGM_OFF"])
         end
-    elseif input == "testachiev" or input == "testachievement" then
-        self:TestAchievementNotify(Util:Trim((input:match("^testachiev%s+(.+)$") or input:match("^testachievement%s+(.+)$") or "")))
+    elseif input:match("^testachiev") or input:match("^testachievement") then
+        local query = Util:Trim(input:match("^testachiev%s+(.+)$") or input:match("^testachievement%s+(.+)$") or "")
+        self:TestAchievementNotify(query)
     else
         self:Print(ns.L["SLASH_HELP"])
     end

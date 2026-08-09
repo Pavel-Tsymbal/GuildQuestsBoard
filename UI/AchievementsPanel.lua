@@ -54,8 +54,6 @@ function AchievementsPanel:Init(earnedScroll, earnedScrollChild, catalogScroll, 
     self.filterBar:SetPoint("TOPRIGHT", self.catalogSection, "TOPRIGHT", 0, 0)
     self.filterBar:SetHeight(24)
 
-
-
     self.excludeAllianceCheck = CreateFrame("CheckButton", nil, self.filterBar, "UICheckButtonTemplate")
 
     self.excludeAllianceCheck:SetPoint("LEFT", 4, 0)
@@ -68,13 +66,16 @@ function AchievementsPanel:Init(earnedScroll, earnedScrollChild, catalogScroll, 
 
     self.excludeHordeCheck = CreateFrame("CheckButton", nil, self.filterBar, "UICheckButtonTemplate")
 
-    self.excludeHordeCheck:SetPoint("LEFT", self.excludeAllianceLabel, "RIGHT", 24, 0)
+    self.excludeHordeCheck:SetPoint("LEFT", self.excludeAllianceLabel, "RIGHT", 16, 0)
 
     self.excludeHordeLabel = self.filterBar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 
     self.excludeHordeLabel:SetPoint("LEFT", self.excludeHordeCheck, "RIGHT", 2, 0)
 
-
+    self.excludeSpeedrunCheck = CreateFrame("CheckButton", nil, self.filterBar, "UICheckButtonTemplate")
+    self.excludeSpeedrunCheck:SetPoint("LEFT", self.excludeHordeLabel, "RIGHT", 16, 0)
+    self.excludeSpeedrunLabel = self.filterBar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    self.excludeSpeedrunLabel:SetPoint("LEFT", self.excludeSpeedrunCheck, "RIGHT", 2, 0)
 
     local panel = self
 
@@ -85,6 +86,11 @@ function AchievementsPanel:Init(earnedScroll, earnedScrollChild, catalogScroll, 
 
     self.excludeHordeCheck:SetScript("OnClick", function()
         ns.PersonalSettings:SetAchievementFilter("excludeHorde", panel.excludeHordeCheck:GetChecked())
+        panel:RefreshCatalog()
+    end)
+
+    self.excludeSpeedrunCheck:SetScript("OnClick", function()
+        ns.PersonalSettings:SetAchievementFilter("excludeSpeedrun", panel.excludeSpeedrunCheck:GetChecked())
         panel:RefreshCatalog()
     end)
 
@@ -174,11 +180,10 @@ function AchievementsPanel:SyncFilterControls()
     self.excludeAllianceCheck:SetChecked(filters.excludeAlliance)
 
     self.excludeHordeCheck:SetChecked(filters.excludeHorde)
-
+    self.excludeSpeedrunCheck:SetChecked(filters.excludeSpeedrun)
     self.excludeAllianceLabel:SetText(ns.L["ACHIEV_FILTER_EXCLUDE_ALLIANCE"])
-
     self.excludeHordeLabel:SetText(ns.L["ACHIEV_FILTER_EXCLUDE_HORDE"])
-
+    self.excludeSpeedrunLabel:SetText(ns.L["ACHIEV_FILTER_EXCLUDE_SPEEDRUN"])
 end
 
 
@@ -454,6 +459,16 @@ function AchievementsPanel:RefreshEarned()
 
 
     local earnedList = ns.AchievementStorage:GetAllEarned()
+    table.sort(earnedList, function(a, b)
+        local entryA = ns.AchievementCatalog:GetById(a.id)
+        local entryB = ns.AchievementCatalog:GetById(b.id)
+        local levelA = entryA and entryA.levelCap or 999
+        local levelB = entryB and entryB.levelCap or 999
+        if levelA ~= levelB then
+            return levelA < levelB
+        end
+        return (tonumber(a.earnedAt) or 0) > (tonumber(b.earnedAt) or 0)
+    end)
 
     if #earnedList == 0 then
 
@@ -542,7 +557,7 @@ function AchievementsPanel:RefreshCatalog()
 
     local filters = ns.PersonalSettings:GetAchievementFilters()
 
-    local catalog = ns.AchievementCatalog:GetQuestAchievements(filters)
+    local catalog = ns.AchievementCatalog:GetAchievements(filters)
 
     if #catalog == 0 then
         self.catalogEmpty:Show()

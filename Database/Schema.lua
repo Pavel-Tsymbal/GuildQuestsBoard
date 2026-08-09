@@ -50,6 +50,7 @@ function Schema:DefaultCharSettings()
         achievementFilters = {
             excludeAlliance = false,
             excludeHorde = false,
+            excludeSpeedrun = false,
         },
     }
 end
