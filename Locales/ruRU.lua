@@ -24,6 +24,7 @@ local L = {
     MAIN_TAB_ACHIEVEMENTS = "Достижения",
     ACHIEV_SECTION_EARNED = "Мои достижения",
     ACHIEV_SECTION_CATALOG = "Доступные достижения",
+    ACHIEV_SECTION_CATALOG_COUNT = "Доступные достижения (%d)",
     ACHIEV_EARNED_EMPTY = "Пока нет достижений. Сдавайте квесты до указанного уровня.",
     ACHIEV_CATALOG_EMPTY_FILTER = "Нет достижений по выбранному фильтру. Измените галочку выше.",
     ACHIEV_FILTER_EXCLUDE_ALLIANCE = "Скрыть Альянс",

@@ -8,30 +8,28 @@ ns.AchievementsPanel = AchievementsPanel
 
 
 
-AchievementsPanel.earnedRows = {}
+AchievementsPanel.earnedIcons = {}
 
 AchievementsPanel.catalogRows = {}
 
+AchievementsPanel.EARNED_ICON_SIZE = 40
+AchievementsPanel.EARNED_ICON_GAP = 6
+AchievementsPanel.EARNED_ICON_PAD_X = 4
+AchievementsPanel.EARNED_ICON_PAD_TOP = 0
+AchievementsPanel.EARNED_ICON_PAD_BOTTOM = 2
 
 
-function AchievementsPanel:Init(earnedScroll, earnedScrollChild, catalogScroll, catalogScrollChild, viewFrame)
-    self.earnedScroll = earnedScroll
-    self.earnedScrollChild = earnedScrollChild
+
+function AchievementsPanel:Init(earnedFrame, catalogScroll, catalogScrollChild, viewFrame)
+    self.earnedFrame = earnedFrame
     self.catalogScroll = catalogScroll
     self.catalogScrollChild = catalogScrollChild
     self.viewFrame = viewFrame
 
-    self.earnedHeader = viewFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    self.earnedHeader:SetPoint("TOPLEFT", earnedScroll, "TOPLEFT", 4, -4)
-
-    self.earnedHeader:SetWidth(740)
-
-    self.earnedHeader:SetJustifyH("LEFT")
-
-
+    earnedFrame:SetClipsChildren(false)
 
     self.earnedEmpty = viewFrame:CreateFontString(nil, "OVERLAY", "GameFontDisable")
-    self.earnedEmpty:SetPoint("CENTER", earnedScroll, "CENTER", 0, 0)
+    self.earnedEmpty:SetPoint("CENTER", earnedFrame, "CENTER", 0, 0)
 
     self.earnedEmpty:SetWidth(560)
 
@@ -40,8 +38,8 @@ function AchievementsPanel:Init(earnedScroll, earnedScrollChild, catalogScroll, 
 
 
     self.catalogSection = CreateFrame("Frame", nil, viewFrame)
-    self.catalogSection:SetPoint("TOPLEFT", earnedScroll, "BOTTOMLEFT", 0, -8)
-    self.catalogSection:SetPoint("TOPRIGHT", earnedScroll, "BOTTOMRIGHT", 0, -8)
+    self.catalogSection:SetPoint("TOPLEFT", earnedFrame, "BOTTOMLEFT", 0, -4)
+    self.catalogSection:SetPoint("TOPRIGHT", earnedFrame, "BOTTOMRIGHT", 0, -4)
     self.catalogSection:SetHeight(46)
 
     self.catalogHeader = self.catalogSection:CreateFontString(nil, "OVERLAY", "GameFontNormal")
@@ -145,6 +143,39 @@ end
 
 
 
+function AchievementsPanel:GetEarnedFrameWidth()
+    local width = self.earnedFrame and self.earnedFrame:GetWidth() or 0
+    if width < 100 and self.viewFrame then
+        width = self.viewFrame:GetWidth() or 0
+        if width > 28 then
+            width = width - 28
+        end
+    end
+    if width < 100 then
+        width = 760
+    end
+    return width
+end
+
+function AchievementsPanel:GetEarnedIconCols()
+    local frameWidth = self:GetEarnedFrameWidth()
+    local cellStep = self.EARNED_ICON_SIZE + self.EARNED_ICON_GAP
+    return math.max(1, math.floor((frameWidth - self.EARNED_ICON_PAD_X * 2 + self.EARNED_ICON_GAP) / cellStep))
+end
+
+function AchievementsPanel:GetEarnedFrameHeight(iconCount, cols)
+    if iconCount <= 0 then
+        return 48
+    end
+    cols = math.max(cols, 1)
+    local iconSize = self.EARNED_ICON_SIZE
+    local cellStep = iconSize + self.EARNED_ICON_GAP
+    local rows = math.ceil(iconCount / cols)
+    return self.EARNED_ICON_PAD_TOP + (rows - 1) * cellStep + iconSize + self.EARNED_ICON_PAD_BOTTOM
+end
+
+
+
 function AchievementsPanel:FormatDate(timestamp)
 
     if not timestamp then
@@ -159,124 +190,58 @@ end
 
 
 
-function AchievementsPanel:CreateEarnedRow(parent, index)
+function AchievementsPanel:ShowEarnedTooltip(cell, entry, earned)
+    if not entry then
+        return
+    end
+    GameTooltip:SetOwner(cell, "ANCHOR_RIGHT")
+    GameTooltip:ClearLines()
+    GameTooltip:AddLine(ns.AchievementCatalog:GetTitle(entry), 1, 1, 1)
+    GameTooltip:AddLine(ns.AchievementCatalog:GetFactionTagText(entry), 1, 1, 1)
+    GameTooltip:AddLine(ns.AchievementCatalog:GetDescription(entry), 1, 1, 1, true)
+    if entry.zone and entry.zone ~= "" then
+        GameTooltip:AddLine(entry.zone, 1, 0.82, 0)
+    end
+    if entry.questName and entry.questName ~= "" then
+        GameTooltip:AddLine(entry.questName, 0.92, 0.92, 0.92)
+    end
+    if earned then
+        GameTooltip:AddLine(string.format(
+            ns.L["ACHIEV_EARNED_META"],
+            self:FormatDate(earned.earnedAt),
+            earned.level or "?"
+        ), 0.55, 0.95, 0.55)
+    end
+    GameTooltip:AddLine(ns.AchievementCatalog:GetLevelCapText(entry), 0.7, 0.7, 0.7, true)
+    GameTooltip:Show()
+end
 
-    local row = CreateFrame("Frame", "GuildQuestsAchEarnedRow" .. index, parent, "BackdropTemplate")
 
-    row:SetSize(760, 72)
 
-    row:SetBackdrop({
-
+function AchievementsPanel:CreateEarnedIcon(parent, index)
+    local cell = CreateFrame("Button", "GuildQuestsAchEarnedIcon" .. index, parent, "BackdropTemplate")
+    cell:SetSize(self.EARNED_ICON_SIZE, self.EARNED_ICON_SIZE)
+    cell:SetBackdrop({
         bgFile = "Interface\\Buttons\\WHITE8x8",
-
         edgeFile = "Interface\\Buttons\\WHITE8x8",
-
         tile = false,
-
         edgeSize = 1,
-
     })
+    cell:SetBackdropColor(0.10, 0.08, 0.05, 0.95)
+    cell:SetBackdropBorderColor(0.78, 0.62, 0.22, 0.95)
 
-    row:SetBackdropColor(0.12, 0.12, 0.16, 0.85)
+    cell.icon = cell:CreateTexture(nil, "ARTWORK")
+    cell.icon:SetPoint("TOPLEFT", 3, -3)
+    cell.icon:SetPoint("BOTTOMRIGHT", -3, 3)
 
-    row:SetBackdropBorderColor(0.25, 0.25, 0.3, 1)
-
-
-
-    row.icon = row:CreateTexture(nil, "ARTWORK")
-
-    row.icon:SetSize(40, 40)
-
-    row.icon:SetPoint("LEFT", 10, 0)
-
-
-
-    row.factionTag = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-
-    row.factionTag:SetPoint("TOPRIGHT", -12, -8)
-
-    row.factionTag:SetWidth(120)
-
-    row.factionTag:SetJustifyH("RIGHT")
-
-
-
-    row.title = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-
-    row.title:SetPoint("TOPLEFT", row.icon, "TOPRIGHT", 10, 0)
-
-    row.title:SetWidth(520)
-
-    row.title:SetJustifyH("LEFT")
-
-
-
-    row.meta = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-
-    row.meta:SetPoint("TOPLEFT", row.title, "BOTTOMLEFT", 0, -2)
-
-    row.meta:SetWidth(520)
-
-    row.meta:SetJustifyH("LEFT")
-
-
-
-    row.desc = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-
-    row.desc:SetPoint("TOPLEFT", row.meta, "BOTTOMLEFT", 0, -2)
-
-    row.desc:SetWidth(620)
-
-    row.desc:SetJustifyH("LEFT")
-
-
-
-    row:SetScript("OnEnter", function(self)
-
-        local entry = self.entry
-
-        local earned = self.earned
-
-        if not entry then
-
-            return
-
-        end
-
-        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-
-        GameTooltip:ClearLines()
-
-        GameTooltip:AddLine(ns.AchievementCatalog:GetTitle(entry), 1, 1, 1)
-
-        GameTooltip:AddLine(ns.AchievementCatalog:GetFactionTagText(entry), 1, 1, 1)
-
-        GameTooltip:AddLine(entry.zone or "", 1, 0.82, 0)
-
-        GameTooltip:AddLine(entry.questName or "", 1, 1, 1, true)
-
-        if earned and earned.level then
-
-            GameTooltip:AddLine(string.format(ns.L["ACHIEV_TOOLTIP_LEVEL"], earned.level), 1, 1, 1)
-
-        end
-
-        GameTooltip:AddLine(ns.AchievementCatalog:GetLevelCapText(entry), 0.7, 0.7, 0.7, true)
-
-        GameTooltip:Show()
-
+    cell:SetScript("OnEnter", function(self)
+        AchievementsPanel:ShowEarnedTooltip(self, self.entry, self.earned)
     end)
-
-    row:SetScript("OnLeave", function()
-
+    cell:SetScript("OnLeave", function()
         GameTooltip:Hide()
-
     end)
 
-
-
-    return row
-
+    return cell
 end
 
 
@@ -406,108 +371,76 @@ end
 
 
 function AchievementsPanel:RefreshEarned()
-
-    self.earnedHeader:SetText(ns.L["ACHIEV_SECTION_EARNED"])
-
     self.earnedEmpty:SetText(ns.L["ACHIEV_EARNED_EMPTY"])
-
-    self:HideRows(self.earnedRows)
-
-
+    self:HideRows(self.earnedIcons)
 
     local earnedList = ns.AchievementStorage:GetAllEarned()
     table.sort(earnedList, function(a, b)
-        local entryA = ns.AchievementCatalog:GetById(a.id)
-        local entryB = ns.AchievementCatalog:GetById(b.id)
-        local levelA = entryA and entryA.levelCap or 999
-        local levelB = entryB and entryB.levelCap or 999
-        if levelA ~= levelB then
-            return levelA < levelB
+        local atA = tonumber(a.earnedAt) or 0
+        local atB = tonumber(b.earnedAt) or 0
+        if atA ~= atB then
+            return atA < atB
         end
-        return (tonumber(a.earnedAt) or 0) > (tonumber(b.earnedAt) or 0)
+        return (a.id or "") < (b.id or "")
     end)
 
-    if #earnedList == 0 then
-
-        self.earnedEmpty:Show()
-
-        self.earnedScrollChild:SetHeight(120)
-
-        return
-
+    local visible = {}
+    for _, earned in ipairs(earnedList) do
+        local entry = ns.AchievementCatalog:GetById(earned.id)
+        if entry and ns.AchievementCatalog:CanPlayerEarn(entry) then
+            visible[#visible + 1] = { entry = entry, earned = earned }
+        end
     end
 
-
+    if #visible == 0 then
+        self.earnedEmpty:Show()
+        self.earnedFrame:SetHeight(48)
+        return
+    end
 
     self.earnedEmpty:Hide()
 
-    local y = 24
-    for i, earned in ipairs(earnedList) do
+    local iconSize = self.EARNED_ICON_SIZE
+    local iconGap = self.EARNED_ICON_GAP
+    local padX = self.EARNED_ICON_PAD_X
+    local padTop = self.EARNED_ICON_PAD_TOP
+    local cols = self:GetEarnedIconCols()
+    local cellStep = iconSize + iconGap
 
-        local entry = ns.AchievementCatalog:GetById(earned.id)
-
-        if entry and ns.AchievementCatalog:CanPlayerEarn(entry) then
-
-            local row = self.earnedRows[i]
-
-            if not row then
-
-                row = self:CreateEarnedRow(self.earnedScrollChild, i)
-
-                self.earnedRows[i] = row
-
-            end
-
-            row.entry = entry
-
-            row.earned = earned
-
-            row:SetPoint("TOPLEFT", 0, -y)
-
-            row:Show()
-
-
-
-            row.icon:SetTexture(entry.icon)
-
-            row.title:SetText(ns.AchievementCatalog:GetTitle(entry))
-
-            row.factionTag:SetText(ns.AchievementCatalog:GetFactionTagText(entry))
-
-            row.meta:SetText(string.format(
-
-                ns.L["ACHIEV_EARNED_META"],
-
-                self:FormatDate(earned.earnedAt),
-
-                earned.level or "?"
-
-            ))
-
-            row.desc:SetText(ns.AchievementCatalog:GetDescription(entry))
-
-
-
-            y = y + 76
-
+    for i, item in ipairs(visible) do
+        local cell = self.earnedIcons[i]
+        if not cell then
+            cell = self:CreateEarnedIcon(self.earnedFrame, i)
+            self.earnedIcons[i] = cell
         end
 
+        local col = (i - 1) % cols
+        local row = math.floor((i - 1) / cols)
+        local x = padX + col * cellStep
+        local y = -(padTop + row * cellStep)
+
+        cell.entry = item.entry
+        cell.earned = item.earned
+        cell:ClearAllPoints()
+        cell:SetPoint("TOPLEFT", x, y)
+        cell:Show()
+        cell.icon:SetTexture(item.entry.icon)
+        cell.icon:SetVertexColor(1, 1, 1)
     end
 
-    self.earnedScrollChild:SetHeight(math.max(y + 8, 120))
-
+    self.earnedFrame:SetHeight(self:GetEarnedFrameHeight(#visible, cols))
 end
 
 
 
 function AchievementsPanel:RefreshCatalog()
     self:SyncFilterControls()
-    self.catalogHeader:SetText(ns.L["ACHIEV_SECTION_CATALOG"])
     self.catalogEmpty:SetText(ns.L["ACHIEV_CATALOG_EMPTY_FILTER"])
     self:HideRows(self.catalogRows)
 
     local filters = ns.PersonalSettings:GetAchievementFilters()
     local catalog = ns.AchievementCatalog:GetAchievements(filters)
+    self.catalogHeader:SetText(string.format(ns.L["ACHIEV_SECTION_CATALOG_COUNT"], #catalog))
     if #catalog == 0 then
         self.catalogEmpty:Show()
         self.catalogScrollChild:SetHeight(120)
@@ -575,7 +508,7 @@ end
 
 function AchievementsPanel:Refresh()
 
-    if not self.earnedScrollChild then
+    if not self.earnedFrame then
 
         return
 

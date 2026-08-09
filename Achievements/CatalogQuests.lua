@@ -123,6 +123,22 @@ function Catalog:SortEntries(list)
     return list
 end
 
+function Catalog:CountEarnable()
+    local count = 0
+    local playerFaction = self:GetPlayerFaction()
+    for _, entry in ipairs(QUEST_ACHIEVEMENTS) do
+        if self:CanPlayerEarn(entry, playerFaction) then
+            count = count + 1
+        end
+    end
+    for _, entry in ipairs(SPEEDRUN_ACHIEVEMENTS) do
+        if self:CanPlayerEarn(entry, playerFaction) then
+            count = count + 1
+        end
+    end
+    return count
+end
+
 function Catalog:GetAchievements(filters)
     local list = {}
     local playerFaction = self:GetPlayerFaction()

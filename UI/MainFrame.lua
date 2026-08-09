@@ -73,13 +73,10 @@ function MainUI:Init()
     self.achievementsView:SetPoint("BOTTOMRIGHT", -12, 16)
     self.achievementsView:Hide()
 
-    self.achievementsEarnedScroll = CreateFrame("ScrollFrame", nil, self.achievementsView, "UIPanelScrollFrameTemplate")
-    self.achievementsEarnedScroll:SetPoint("TOPLEFT", 0, 0)
-    self.achievementsEarnedScroll:SetPoint("BOTTOMRIGHT", self.achievementsView, "TOPRIGHT", -28, -210)
-
-    self.achievementsEarnedScrollChild = CreateFrame("Frame", nil, self.achievementsEarnedScroll)
-    self.achievementsEarnedScrollChild:SetSize(760, 180)
-    self.achievementsEarnedScroll:SetScrollChild(self.achievementsEarnedScrollChild)
+    self.achievementsEarnedFrame = CreateFrame("Frame", nil, self.achievementsView)
+    self.achievementsEarnedFrame:SetPoint("TOPLEFT", 0, 0)
+    self.achievementsEarnedFrame:SetPoint("TOPRIGHT", -28, 0)
+    self.achievementsEarnedFrame:SetHeight(52)
 
     self.achievementsCatalogScroll = CreateFrame("ScrollFrame", nil, self.achievementsView, "UIPanelScrollFrameTemplate")
     self.achievementsCatalogScroll:SetPoint("BOTTOMRIGHT", -28, 0)
@@ -89,13 +86,12 @@ function MainUI:Init()
     self.achievementsCatalogScroll:SetScrollChild(self.achievementsCatalogScrollChild)
 
     ns.AchievementsPanel:Init(
-        self.achievementsEarnedScroll,
-        self.achievementsEarnedScrollChild,
+        self.achievementsEarnedFrame,
         self.achievementsCatalogScroll,
         self.achievementsCatalogScrollChild,
         self.achievementsView
     )
-    ns.AchievementsPanel:SetDividerAnchor(self.achievementsEarnedScroll)
+    ns.AchievementsPanel:SetDividerAnchor(self.achievementsEarnedFrame)
 
     self.deathlogView = CreateFrame("Frame", nil, self.frame)
     self.deathlogView:SetPoint("TOPLEFT", 12, -104)

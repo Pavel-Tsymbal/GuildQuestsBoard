@@ -24,6 +24,7 @@ local L = {
     MAIN_TAB_ACHIEVEMENTS = "Achievements",
     ACHIEV_SECTION_EARNED = "My Achievements",
     ACHIEV_SECTION_CATALOG = "Available Achievements",
+    ACHIEV_SECTION_CATALOG_COUNT = "Available Achievements (%d)",
     ACHIEV_EARNED_EMPTY = "No achievements yet. Complete quests before the level shown in each entry.",
     ACHIEV_CATALOG_EMPTY_FILTER = "No achievements match your filter. Adjust the checkbox above.",
     ACHIEV_FILTER_EXCLUDE_ALLIANCE = "Hide Alliance",
