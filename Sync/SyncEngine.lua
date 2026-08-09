@@ -8,6 +8,7 @@ ns.SyncEngine = SyncEngine
 
 SyncEngine.catchUpTimer = nil
 SyncEngine.lastCatchUpTarget = nil
+SyncEngine.loginCatchUpPending = false
 
 function SyncEngine:Init()
     ns.GQ:RegisterEvent("PLAYER_GUILD_UPDATE", function()
@@ -19,13 +20,26 @@ function SyncEngine:Init()
     ns.GQ:RegisterEvent("GUILD_ROSTER_UPDATE", function()
         if Util:GetGuildKey() then
             C_Timer.After(2, function()
+                ns.Projections:ReplayMissingDeaths()
                 SyncEngine:RequestCatchUp(false)
+            end)
+        end
+    end)
+    ns.GQ:RegisterCallback("PeersUpdated", function()
+        if SyncEngine.loginCatchUpPending then
+            C_Timer.After(1, function()
+                SyncEngine:RequestCatchUp(false, true)
             end)
         end
     end)
 end
 
 function SyncEngine:OnGuildReady()
+    self.loginCatchUpPending = true
+    C_Timer.After(20, function()
+        self.loginCatchUpPending = false
+    end)
+    ns.Projections:ReplayMissingDeaths()
     ns.Heartbeat:BroadcastNow()
     C_Timer.After(2, function()
         ns.Heartbeat:BroadcastNow()
@@ -34,7 +48,7 @@ function SyncEngine:OnGuildReady()
         ns.Heartbeat:BroadcastNow()
     end)
     C_Timer.After(C.SYNC_CATCHUP_DELAY, function()
-        self:RequestCatchUp(false)
+        self:RequestCatchUp(false, true)
         ns.Transport:SendStateHash(ns.Storage:GetStateHash(), ns.Storage:GetLogicalClock())
     end)
 end
@@ -107,6 +121,7 @@ function SyncEngine:HandleEventResponse(payload, sender)
     for _, event in ipairs(events) do
         ns.Replicator:ProcessRemoteEvent(event, sender)
     end
+    ns.Projections:ReplayMissingDeaths()
     ns.GQ:Fire("SyncComplete")
 end
 
@@ -117,33 +132,65 @@ function SyncEngine:HandleStateHash(sender, payload)
     end
 end
 
+function SyncEngine:GetCatchUpSince(peer, localHash, forceFull)
+    if forceFull then
+        return C.FULL_REPLAY_SINCE
+    end
+    if peer and peer.stateHash and peer.stateHash ~= localHash then
+        return C.FULL_REPLAY_SINCE
+    end
+    local store = ns.Storage:GetGuildStore()
+    if peer and peer.eventCount and store and peer.eventCount > #store.events then
+        return C.FULL_REPLAY_SINCE
+    end
+    if ns.Storage:CountDeathEvents() > ns.Storage:CountDeathRecords() then
+        return C.FULL_REPLAY_SINCE
+    end
+    return ns.Storage:GetMaxEventLamport()
+end
+
+function SyncEngine:SelectCatchUpPeer(forceFull)
+    local localHash = ns.Storage:GetStateHash()
+    local since = ns.Storage:GetMaxEventLamport()
+    local bestPeer = nil
+    local bestClock = -1
+    local bestSince = since
+    for name, peer in pairs(ns.Heartbeat:GetPeers()) do
+        if name ~= Util:GetPlayerName() and peer.compatible then
+            local clock = peer.logicalClock or 0
+            local peerSince = self:GetCatchUpSince(peer, localHash, forceFull)
+            if peerSince <= 0 or clock > since then
+                if not bestPeer or clock > bestClock or (clock == bestClock and peerSince <= 0 and bestSince > 0) then
+                    bestPeer = name
+                    bestClock = clock
+                    bestSince = peerSince
+                end
+            end
+        end
+    end
+    return bestPeer, bestSince
+end
+
 function SyncEngine:OnHashMismatch(sender)
     if self.catchUpTimer then
         ns.GQ:CancelTimer(self.catchUpTimer)
     end
     self.lastCatchUpTarget = sender
     self.catchUpTimer = ns.GQ:ScheduleTimer(function()
-        ns.Transport:RequestEvents(sender, ns.Storage:GetMaxEventLamport())
+        ns.Transport:RequestEvents(sender, C.FULL_REPLAY_SINCE)
     end, 1 + math.random() * 2)
 end
 
-function SyncEngine:RequestCatchUp(verbose)
+function SyncEngine:RequestCatchUp(verbose, forceFull)
     if not IsInGuild() then
         return
     end
-    local since = ns.Storage:GetMaxEventLamport()
-    local localHash = ns.Storage:GetStateHash()
-    local bestPeer = nil
-    for name, peer in pairs(ns.Heartbeat:GetPeers()) do
-        if name ~= Util:GetPlayerName() and peer.compatible then
-            if peer.logicalClock > since or (peer.stateHash and peer.stateHash ~= localHash) then
-                bestPeer = name
-                break
-            end
-        end
+    if ns.Storage:CountDeathEvents() > ns.Storage:CountDeathRecords() then
+        ns.Projections:ReplayMissingDeaths()
     end
+    local bestPeer, bestSince = self:SelectCatchUpPeer(verbose or forceFull)
     if bestPeer then
-        ns.Transport:RequestEvents(bestPeer, since)
+        ns.Transport:RequestEvents(bestPeer, bestSince)
         if verbose then
             ns.GQ:Print(ns.L["SLASH_SYNC"])
         end
@@ -169,11 +216,16 @@ function SyncEngine:PrintDebug()
     local store = ns.Storage:GetGuildStore()
     if store then
         gq:Print(string.format(
-            "Local: %d quests, %d events, lamport %d (applied %d)",
+            "Local: %d quests, %d events, lamport %d (max event %d)",
             Util:CountTable(store.quests),
             #store.events,
             store.logicalClock or 0,
             ns.Storage:GetMaxEventLamport()
+        ))
+        gq:Print(string.format(
+            "Deaths: %d records, %d death events",
+            ns.Storage:CountDeathRecords(),
+            ns.Storage:CountDeathEvents()
         ))
     else
         gq:Print("Local: no guild store (not in guild or roster not loaded)")
@@ -182,9 +234,11 @@ function SyncEngine:PrintDebug()
     for name, peer in pairs(ns.Heartbeat:GetPeers()) do
         peerCount = peerCount + 1
         gq:Print(string.format(
-            "Peer: %s lamport=%d compatible=%s",
+            "Peer: %s lamport=%d events=%s hash=%s compatible=%s",
             name,
             peer.logicalClock or 0,
+            peer.eventCount and tostring(peer.eventCount) or "?",
+            tostring(peer.stateHash or "?"),
             tostring(peer.compatible)
         ))
     end

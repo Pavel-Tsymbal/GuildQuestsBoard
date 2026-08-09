@@ -75,7 +75,7 @@ function Replicator:ApplyEvent(event, isLocal)
     if ns.Storage:HasSeenEvent(event.id) then
         return false
     end
-    if isLocal and not event.lamport then
+    if isLocal and (not event.lamport or event.lamport < 1) then
         event.lamport = ns.Storage:NextLamport()
     end
     if not ns.Storage:AppendEvent(event) then

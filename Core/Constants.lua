@@ -3,13 +3,15 @@ ns.Constants = {
     ADDON_NAME = "GuildQuests",
     VERSION = "1.0.0",
     COMM_PREFIX = "GuildQuests",
-    SCHEMA_VERSION = 2,
+    SCHEMA_VERSION = 3,
 
     HEARTBEAT_INTERVAL = 45,
     HEARTBEAT_TIMEOUT = 90,
     SCHEDULER_TICK = 30,
     EXPIRY_GRACE = 60,
     SYNC_CATCHUP_DELAY = 3,
+    -- Full journal replay; -1 works with old peers (GetEventsSince(0) skips lamport=0 deaths).
+    FULL_REPLAY_SINCE = -1,
 
     -- Set to false before release; grants guild settings edit access without being GM.
     DEBUG_GUILD_MASTER = false,

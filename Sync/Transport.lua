@@ -91,7 +91,8 @@ function Transport:SendHeartbeat(data)
         data.version,
         data.lamport,
         data.stateHash,
-        data.guildKey
+        data.guildKey,
+        data.eventCount
     )
     self:SendToGuild(C.OPCODE.HB, payload)
 end

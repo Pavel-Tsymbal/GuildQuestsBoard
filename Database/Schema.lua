@@ -108,7 +108,7 @@ function Schema:NewEvent(eventType, actor, payload)
         type = eventType,
         guildKey = Util:GetGuildKey(),
         actor = actor,
-        lamport = 0,
+        lamport = nil,
         wallTime = Util:Now(),
         payload = payload or {},
     }

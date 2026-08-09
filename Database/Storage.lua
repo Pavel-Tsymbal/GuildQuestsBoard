@@ -149,6 +149,24 @@ function Storage:GetStateHash()
     return store and store.stateHash or "0"
 end
 
+function Storage:CountDeathEvents()
+    local store = self:GetGuildStore()
+    if not store or not store.events then
+        return 0
+    end
+    local count = 0
+    for _, event in ipairs(store.events) do
+        if event.type == C.EVENT.GUILD_MEMBER_DIED then
+            count = count + 1
+        end
+    end
+    return count
+end
+
+function Storage:CountDeathRecords()
+    return Util:CountTable(self:GetDeaths())
+end
+
 function Storage:GetMaxEventLamport()
     local store = self:GetGuildStore()
     if not store then
@@ -175,8 +193,13 @@ function Storage:GetEventsSince(lamport)
         return result
     end
     for _, event in ipairs(store.events) do
-        if event.lamport and event.lamport > lamport then
+        if lamport <= 0 then
             table.insert(result, event)
+        else
+            local eventLamport = event.lamport or 0
+            if eventLamport > lamport then
+                table.insert(result, event)
+            end
         end
     end
     table.sort(result, Util.CompareEventOrder)

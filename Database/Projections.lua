@@ -66,11 +66,34 @@ function Projections:ApplyDeathEvent(event)
     if not death then
         return false
     end
+    if event.guildKey and Util:SameGuildKey(event.guildKey, Util:GetGuildKey()) then
+        ns.Storage:UpsertDeath(death)
+        return true
+    end
     if ns.DeathLogEnricher and not ns.DeathLogEnricher:PassesGuildFilter(death.name, death.guild) then
         return false
     end
     ns.Storage:UpsertDeath(death)
     return true
+end
+
+function Projections:ReplayMissingDeaths()
+    local store = ns.Storage:GetGuildStore()
+    if not store or not store.events then
+        return 0
+    end
+    local replayed = 0
+    for _, event in ipairs(store.events) do
+        if event.type == C.EVENT.GUILD_MEMBER_DIED then
+            local death = event.payload and event.payload.death
+            if death and not ns.Storage:FindDeathForMerge(death) then
+                if self:ApplyDeathEvent(event) then
+                    replayed = replayed + 1
+                end
+            end
+        end
+    end
+    return replayed
 end
 
 function Projections:ApplyQuestCreated(event)
