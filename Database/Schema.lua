@@ -47,11 +47,6 @@ function Schema:DefaultCharSettings()
         },
         dismissedNotifications = {},
         achievements = {},
-        achievementFilters = {
-            excludeAlliance = false,
-            excludeHorde = false,
-            excludeSpeedrun = false,
-        },
     }
 end
 

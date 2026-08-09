@@ -121,6 +121,9 @@ function GQ:SlashCommand(input)
     elseif input:match("^testachiev") or input:match("^testachievement") then
         local query = Util:Trim(input:match("^testachiev%s+(.+)$") or input:match("^testachievement%s+(.+)$") or "")
         self:TestAchievementNotify(query)
+    elseif input:match("^testdeath") then
+        local name = Util:Trim(input:match("^testdeath%s+(.+)$") or "")
+        self:TestDeathNotify(name)
     else
         self:Print(ns.L["SLASH_HELP"])
     end
@@ -138,6 +141,11 @@ function GQ:TestAchievementNotify(query)
         end
     end
     self:Print(ns.L["SLASH_TESTACHIEV"])
+end
+
+function GQ:TestDeathNotify(name)
+    ns.DeathLogNotifier:ShowTest(name)
+    self:Print(ns.L["SLASH_TESTDEATH"])
 end
 
 function GQ:Fire(event, ...)

@@ -100,20 +100,8 @@ function Catalog:CanPlayerEarn(entry, playerFaction)
     return true
 end
 
-function Catalog:PassesFilter(entry, filters)
-    if not entry or not filters then
-        return true
-    end
-    if filters.excludeAlliance and entry.faction == "Alliance" then
-        return false
-    end
-    if filters.excludeHorde and entry.faction == "Horde" then
-        return false
-    end
-    if filters.excludeSpeedrun and entry.type == "speedrun" then
-        return false
-    end
-    return true
+function Catalog:PassesFilter(entry, playerFaction)
+    return self:CanPlayerEarn(entry, playerFaction)
 end
 
 function Catalog:SortEntries(list)
@@ -126,27 +114,28 @@ function Catalog:SortEntries(list)
     return list
 end
 
-function Catalog:GetAchievements(filters)
+function Catalog:GetAchievements()
     local list = {}
+    local playerFaction = self:GetPlayerFaction()
     for _, entry in ipairs(QUEST_ACHIEVEMENTS) do
-        if self:PassesFilter(entry, filters) then
+        if self:PassesFilter(entry, playerFaction) then
             list[#list + 1] = entry
         end
     end
     for _, entry in ipairs(SPEEDRUN_ACHIEVEMENTS) do
-        if self:PassesFilter(entry, filters) then
+        if self:PassesFilter(entry, playerFaction) then
             list[#list + 1] = entry
         end
     end
     return self:SortEntries(list)
 end
 
-function Catalog:GetQuestAchievements(filters)
-    return self:GetAchievements(filters)
+function Catalog:GetQuestAchievements()
+    return self:GetAchievements()
 end
 
 function Catalog:GetHordeQuests()
-    return self:GetQuestAchievements({ excludeAlliance = true, excludeHorde = false })
+    return self:GetAchievements()
 end
 
 function Catalog:FindByQuery(query)
@@ -175,7 +164,7 @@ function Catalog:GetSpeedrunByTargetLevel(level)
 end
 
 function Catalog:GetDefaultTestEntry()
-    return self:GetById("StinkysEscape") or self:GetAchievements({})[1]
+    return self:GetById("StinkysEscape") or self:GetAchievements()[1]
 end
 
 function Catalog:GetById(id)

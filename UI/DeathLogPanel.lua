@@ -83,8 +83,8 @@ function DeathLogPanel:SetupBackground(viewFrame, scrollFrame)
     self.bgSkull:SetTexture("Interface\\TargetingFrame\\UI-TargetingFrame-Skull")
     self.bgSkull:SetSize(320, 320)
     self.bgSkull:SetPoint("CENTER", 0, -24)
-    self.bgSkull:SetAlpha(0.07)
-    self.bgSkull:SetVertexColor(0.72, 0.66, 0.56)
+    self.bgSkull:SetAlpha(0.16)
+    self.bgSkull:SetVertexColor(0.92, 0.84, 0.68)
 
     if scrollFrame then
         scrollFrame:SetFrameLevel(baseLevel + 3)
