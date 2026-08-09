@@ -17,7 +17,7 @@ function Notifier:Init()
     self.frame:SetFrameLevel(120)
     self.frame:SetClampedToScreen(true)
     self.frame:Hide()
-    self.frame:SetPoint("CENTER", UIParent, "CENTER", 0, -120)
+    self.frame:SetPoint("TOP", UIParent, "TOP", 0, -40)
 
     self.frame:SetBackdrop({
         bgFile = "Interface\\Buttons\\WHITE8x8",
@@ -98,7 +98,7 @@ function Notifier:AnimateIn()
         self.animGroup = nil
     end
     self.frame:ClearAllPoints()
-    self.frame:SetPoint("CENTER", UIParent, "CENTER", 0, -140)
+    self.frame:SetPoint("TOP", UIParent, "TOP", 0, -60)
     self.animGroup = self.frame:CreateAnimationGroup()
     local move = self.animGroup:CreateAnimation("Translation")
     move:SetOffset(0, 20)
@@ -180,7 +180,7 @@ function Notifier:Hide(silent)
     self.frame:Hide()
     self.frame:SetAlpha(1)
     self.frame:ClearAllPoints()
-    self.frame:SetPoint("CENTER", UIParent, "CENTER", 0, -120)
+    self.frame:SetPoint("TOP", UIParent, "TOP", 0, -40)
 end
 
 function Notifier:ShowTest(nameQuery)

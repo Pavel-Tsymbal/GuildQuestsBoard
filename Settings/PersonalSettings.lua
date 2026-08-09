@@ -83,3 +83,21 @@ function PersonalSettings:ShouldShowDeathNotification()
     end
     return IsInGuild()
 end
+
+function PersonalSettings:GetAchievementFilters()
+    local db = self:Get()
+    local defaults = Schema:DefaultCharSettings().achievementFilters
+    db.achievementFilters = db.achievementFilters or {}
+    for key, value in pairs(defaults) do
+        if db.achievementFilters[key] == nil then
+            db.achievementFilters[key] = value
+        end
+    end
+    return db.achievementFilters
+end
+
+function PersonalSettings:SetAchievementFilter(key, value)
+    local filters = self:GetAchievementFilters()
+    filters[key] = value and true or false
+    ns.GQ:Fire("AchievementFiltersChanged")
+end

@@ -100,8 +100,17 @@ function Catalog:CanPlayerEarn(entry, playerFaction)
     return true
 end
 
-function Catalog:PassesFilter(entry, playerFaction)
-    return self:CanPlayerEarn(entry, playerFaction)
+function Catalog:PassesFilter(entry, filters, playerFaction)
+    if not entry then
+        return false
+    end
+    if not self:CanPlayerEarn(entry, playerFaction) then
+        return false
+    end
+    if filters and filters.excludeSpeedrun and entry.type == "speedrun" then
+        return false
+    end
+    return true
 end
 
 function Catalog:SortEntries(list)
@@ -114,16 +123,17 @@ function Catalog:SortEntries(list)
     return list
 end
 
-function Catalog:GetAchievements()
+function Catalog:GetAchievements(filters)
     local list = {}
     local playerFaction = self:GetPlayerFaction()
+    filters = filters or {}
     for _, entry in ipairs(QUEST_ACHIEVEMENTS) do
-        if self:PassesFilter(entry, playerFaction) then
+        if self:PassesFilter(entry, filters, playerFaction) then
             list[#list + 1] = entry
         end
     end
     for _, entry in ipairs(SPEEDRUN_ACHIEVEMENTS) do
-        if self:PassesFilter(entry, playerFaction) then
+        if self:PassesFilter(entry, filters, playerFaction) then
             list[#list + 1] = entry
         end
     end

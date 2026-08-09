@@ -42,15 +42,31 @@ function AchievementsPanel:Init(earnedScroll, earnedScrollChild, catalogScroll, 
     self.catalogSection = CreateFrame("Frame", nil, viewFrame)
     self.catalogSection:SetPoint("TOPLEFT", earnedScroll, "BOTTOMLEFT", 0, -8)
     self.catalogSection:SetPoint("TOPRIGHT", earnedScroll, "BOTTOMRIGHT", 0, -8)
-    self.catalogSection:SetHeight(24)
+    self.catalogSection:SetHeight(46)
 
     self.catalogHeader = self.catalogSection:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     self.catalogHeader:SetPoint("TOPLEFT", 4, -2)
     self.catalogHeader:SetWidth(740)
     self.catalogHeader:SetJustifyH("LEFT")
 
+    self.filterBar = CreateFrame("Frame", nil, self.catalogSection)
+    self.filterBar:SetPoint("TOPLEFT", self.catalogHeader, "BOTTOMLEFT", -4, -4)
+    self.filterBar:SetPoint("TOPRIGHT", self.catalogSection, "TOPRIGHT", 0, 0)
+    self.filterBar:SetHeight(24)
+
+    self.excludeSpeedrunCheck = CreateFrame("CheckButton", nil, self.filterBar, "UICheckButtonTemplate")
+    self.excludeSpeedrunCheck:SetPoint("LEFT", 4, 0)
+    self.excludeSpeedrunLabel = self.filterBar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    self.excludeSpeedrunLabel:SetPoint("LEFT", self.excludeSpeedrunCheck, "RIGHT", 2, 0)
+
+    local panel = self
+    self.excludeSpeedrunCheck:SetScript("OnClick", function()
+        ns.PersonalSettings:SetAchievementFilter("excludeSpeedrun", panel.excludeSpeedrunCheck:GetChecked())
+        panel:RefreshCatalog()
+    end)
+
     catalogScroll:ClearAllPoints()
-    catalogScroll:SetPoint("TOPLEFT", self.catalogHeader, "BOTTOMLEFT", -4, -6)
+    catalogScroll:SetPoint("TOPLEFT", self.filterBar, "BOTTOMLEFT", 0, -6)
     catalogScroll:SetPoint("BOTTOMRIGHT", viewFrame, "BOTTOMRIGHT", -28, 0)
 
     self.catalogEmpty = viewFrame:CreateFontString(nil, "OVERLAY", "GameFontDisable")
@@ -82,6 +98,13 @@ function AchievementsPanel:Init(earnedScroll, earnedScrollChild, catalogScroll, 
 
     end)
 
+    ns.GQ:RegisterCallback("AchievementFiltersChanged", function()
+        if ns.MainUI and ns.MainUI:IsAchievementsView() then
+            self:SyncFilterControls()
+            self:RefreshCatalog()
+        end
+    end)
+
     ns.GQ:RegisterCallback("LocaleChanged", function()
 
         if ns.MainUI and ns.MainUI:IsAchievementsView() then
@@ -110,6 +133,14 @@ function AchievementsPanel:SetDividerAnchor(topFrame)
 
     self.divider:SetPoint("TOPRIGHT", topFrame, "BOTTOMRIGHT", -28, -4)
 
+end
+
+
+
+function AchievementsPanel:SyncFilterControls()
+    local filters = ns.PersonalSettings:GetAchievementFilters()
+    self.excludeSpeedrunCheck:SetChecked(filters.excludeSpeedrun)
+    self.excludeSpeedrunLabel:SetText(ns.L["ACHIEV_FILTER_EXCLUDE_SPEEDRUN"])
 end
 
 
@@ -470,10 +501,19 @@ end
 
 
 function AchievementsPanel:RefreshCatalog()
+    self:SyncFilterControls()
     self.catalogHeader:SetText(ns.L["ACHIEV_SECTION_CATALOG"])
+    self.catalogEmpty:SetText(ns.L["ACHIEV_CATALOG_EMPTY_FILTER"])
     self:HideRows(self.catalogRows)
 
-    local catalog = ns.AchievementCatalog:GetAchievements()
+    local filters = ns.PersonalSettings:GetAchievementFilters()
+    local catalog = ns.AchievementCatalog:GetAchievements(filters)
+    if #catalog == 0 then
+        self.catalogEmpty:Show()
+        self.catalogScrollChild:SetHeight(120)
+        return
+    end
+
     self.catalogEmpty:Hide()
 
 

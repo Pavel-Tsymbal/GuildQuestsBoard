@@ -47,6 +47,9 @@ function Schema:DefaultCharSettings()
         },
         dismissedNotifications = {},
         achievements = {},
+        achievementFilters = {
+            excludeSpeedrun = false,
+        },
     }
 end
 
