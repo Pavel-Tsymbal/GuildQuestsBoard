@@ -5,6 +5,9 @@ local Protocol = ns.Protocol
 local Transport = {}
 ns.Transport = Transport
 
+Transport.messageQueue = {}
+Transport.messagePumpActive = false
+
 function Transport:Init()
     ns.GQ:RegisterComm(C.COMM_PREFIX, function(prefix, message, channel, sender)
         Transport:OnCommReceived(prefix, message, channel, sender)
@@ -20,21 +23,17 @@ function Transport:ResolveMemberName(name)
     if not name or not IsInGuild() then
         return name
     end
-    local short = ns.Util:GetShortPlayerName(name)
-    local numMembers = GetNumGuildMembers()
-    for i = 1, numMembers do
-        local rosterName = GetGuildRosterInfo(i)
-        if rosterName and ns.Util:GetShortPlayerName(rosterName) == short then
-            return rosterName
-        end
+    local full = ns.DeathLogEnricher:GetRosterFullName(name)
+    if full then
+        return full
     end
     return name
 end
 
-function Transport:Send(opcode, payload, channel, target)
+function Transport:Send(opcode, payload, channel, target, prio)
     channel = channel or "GUILD"
     local message = Protocol:Pack(opcode, payload or "")
-    ns.GQ:SendCommMessage(C.COMM_PREFIX, message, channel, target, "NORMAL")
+    pcall(ns.GQ.SendCommMessage, ns.GQ, C.COMM_PREFIX, message, channel, target, prio or "NORMAL")
 end
 
 function Transport:SendToGuild(opcode, payload)
@@ -44,12 +43,30 @@ function Transport:SendToGuild(opcode, payload)
     self:Send(opcode, payload, "GUILD")
 end
 
-function Transport:SendWhisper(opcode, payload, target)
+function Transport:SendWhisper(opcode, payload, target, prio)
     if not target then
         return
     end
     target = self:ResolveMemberName(target)
-    self:Send(opcode, payload, "WHISPER", target)
+    if not ns.Util:IsGuildMemberOnline(target) then
+        return
+    end
+    self:Send(opcode, payload, "WHISPER", target, prio)
+end
+
+function Transport:PumpMessageQueue()
+    if self.messagePumpActive or #self.messageQueue == 0 then
+        return
+    end
+    self.messagePumpActive = true
+    local item = table.remove(self.messageQueue, 1)
+    ns.SyncEngine:HandleMessage(item.opcode, item.payload, item.sender, item.channel)
+    self.messagePumpActive = false
+    if #self.messageQueue > 0 then
+        C_Timer.After(0, function()
+            Transport:PumpMessageQueue()
+        end)
+    end
 end
 
 function Transport:OnCommReceived(prefix, message, channel, sender)
@@ -63,8 +80,13 @@ function Transport:OnCommReceived(prefix, message, channel, sender)
         end
         return
     end
-    sender = ns.Util:GetShortPlayerName(sender)
-    ns.SyncEngine:HandleMessage(opcode, payload, sender, channel)
+    table.insert(self.messageQueue, {
+        opcode = opcode,
+        payload = payload,
+        sender = ns.Util:GetShortPlayerName(sender),
+        channel = channel,
+    })
+    self:PumpMessageQueue()
 end
 
 function Transport:BroadcastEvent(event)
@@ -75,9 +97,26 @@ function Transport:BroadcastEvent(event)
 end
 
 function Transport:SendEvents(target, events)
-    local encoded = ns.Codec:EncodeEvents(events)
-    if encoded and target then
-        self:SendWhisper(C.OPCODE.RS, encoded, target)
+    if not target or not events or #events == 0 then
+        return
+    end
+    self:SendEventChunks(target, events, 1, 20)
+end
+
+function Transport:SendEventChunks(target, events, startIndex, chunkSize)
+    local chunk = {}
+    local endIndex = math.min(startIndex + chunkSize - 1, #events)
+    for j = startIndex, endIndex do
+        chunk[#chunk + 1] = events[j]
+    end
+    local encoded = ns.Codec:EncodeEvents(chunk)
+    if encoded then
+        self:SendWhisper(C.OPCODE.RS, encoded, target, "BULK")
+    end
+    if endIndex < #events then
+        C_Timer.After(0.05, function()
+            Transport:SendEventChunks(target, events, endIndex + 1, chunkSize)
+        end)
     end
 end
 

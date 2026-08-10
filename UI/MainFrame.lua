@@ -137,13 +137,13 @@ function MainUI:Init()
     end)
 
     ns.GQ:RegisterCallback("QuestUpdated", function()
-        self:Refresh()
+        self:ScheduleRefresh()
     end)
     ns.GQ:RegisterCallback("SyncComplete", function()
-        self:Refresh()
+        self:ScheduleRefresh()
     end)
     ns.GQ:RegisterCallback("QuestDeleted", function()
-        self:Refresh()
+        self:ScheduleRefresh()
     end)
     ns.GQ:RegisterCallback("LocaleChanged", function()
         self:UpdateTexts()
@@ -154,25 +154,45 @@ function MainUI:Init()
     ns.GQ:RegisterCallback("GuildChanged", function()
         self:UpdateTexts()
         if self.frame:IsShown() then
-            self:Refresh()
+            self:ScheduleRefresh()
         end
     end)
     ns.GQ:RegisterCallback("GuildSettingsUpdated", function()
-        self:UpdateCreateButtonState()
+        self:ScheduleUpdateCreateButtonState()
     end)
     ns.GQ:RegisterCallback("GuildRosterUpdated", function()
-        self:UpdateCreateButtonState()
+        self:ScheduleUpdateCreateButtonState()
     end)
     ns.GQ:RegisterCallback("PeersUpdated", function()
-        self:UpdateCreateButtonState()
+        self:ScheduleUpdateCreateButtonState()
     end)
     ns.GQ:RegisterEvent("GUILD_ROSTER_UPDATE", function()
-        self:UpdateCreateButtonState()
+        self:ScheduleUpdateCreateButtonState()
     end)
     ns.GQ:RegisterEvent("PLAYER_GUILD_UPDATE", function()
-        self:UpdateCreateButtonState()
+        self:ScheduleUpdateCreateButtonState()
     end)
     self:UpdateCreateButtonState()
+end
+
+function MainUI:ScheduleRefresh()
+    if self.refreshTimer then
+        return
+    end
+    self.refreshTimer = C_Timer.After(0.05, function()
+        self.refreshTimer = nil
+        self:Refresh()
+    end)
+end
+
+function MainUI:ScheduleUpdateCreateButtonState()
+    if self.createButtonTimer then
+        return
+    end
+    self.createButtonTimer = C_Timer.After(0.25, function()
+        self.createButtonTimer = nil
+        self:UpdateCreateButtonState()
+    end)
 end
 
 function MainUI:LayoutCreateButton()

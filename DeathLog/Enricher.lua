@@ -4,19 +4,73 @@ local Util = ns.Util
 local Enricher = {}
 ns.DeathLogEnricher = Enricher
 
-Enricher.whoQueue = {}
-Enricher.whoPending = nil
-Enricher.whoFrame = nil
 Enricher.classFileToId = {}
 Enricher.raceFileToId = {}
+Enricher.memberByName = {}
+Enricher.rosterFullName = {}
+Enricher.memberCacheReady = false
+Enricher.rebuildTimer = nil
 
 function Enricher:Init()
     self:BuildLookupTables()
-    self.whoFrame = CreateFrame("Frame")
-    self.whoFrame:RegisterEvent("WHO_LIST_UPDATE")
-    self.whoFrame:SetScript("OnEvent", function()
-        self:OnWhoListUpdate()
+    ns.GQ:RegisterEvent("GUILD_ROSTER_UPDATE", function()
+        self:ScheduleMemberCacheRebuild()
     end)
+    ns.GQ:RegisterEvent("PLAYER_GUILD_UPDATE", function()
+        self:InvalidateMemberCache()
+    end)
+end
+
+function Enricher:InvalidateMemberCache()
+    self.memberCacheReady = false
+end
+
+function Enricher:ScheduleMemberCacheRebuild()
+    if self.rebuildTimer then
+        return
+    end
+    self.rebuildTimer = C_Timer.After(0.5, function()
+        self.rebuildTimer = nil
+        self:RebuildMemberCache()
+    end)
+end
+
+function Enricher:RebuildMemberCache()
+    self.memberByName = {}
+    self.rosterFullName = {}
+    self.memberCacheReady = false
+    if not IsInGuild() then
+        return
+    end
+    local guildName = self:GetGuildName()
+    local numMembers = GetNumGuildMembers()
+    for i = 1, numMembers do
+        local rosterName, _, _, level, _, _, _, _, _, _, classFile = GetGuildRosterInfo(i)
+        if rosterName then
+            local key = self:NormalizeName(rosterName)
+            self.rosterFullName[key] = rosterName
+            self.memberByName[key] = {
+                guild = guildName,
+                level = level,
+                classId = self:ClassFileToId(classFile),
+            }
+        end
+    end
+    self.memberCacheReady = true
+end
+
+function Enricher:EnsureMemberCache()
+    if not self.memberCacheReady then
+        self:RebuildMemberCache()
+    end
+end
+
+function Enricher:GetRosterFullName(name)
+    if not name then
+        return nil
+    end
+    self:EnsureMemberCache()
+    return self.rosterFullName[self:NormalizeName(name)]
 end
 
 function Enricher:BuildLookupTables()
@@ -43,13 +97,6 @@ end
 
 function Enricher:NormalizeName(name)
     return name and string.lower(Util:GetShortPlayerName(name) or name) or ""
-end
-
-function Enricher:NormalizeWhoName(name)
-    if not name then
-        return nil
-    end
-    return string.lower(Util:GetShortPlayerName(name) or name)
 end
 
 function Enricher:GetGuildName()
@@ -131,29 +178,20 @@ function Enricher:IsGuildMemberByRoster(name)
     if not IsInGuild() or not name then
         return false, nil
     end
-    local target = self:NormalizeName(name)
-    local numMembers = GetNumGuildMembers()
-    for i = 1, numMembers do
-        local rosterName, _, _, level, _, _, _, _, _, _, classFile, _, _, _, _, _, guid = GetGuildRosterInfo(i)
-        if rosterName and self:NormalizeName(rosterName) == target then
-            local classId = self:ClassFileToId(classFile)
-            local raceId, guidClassId = self:RaceClassFromGUID(guid)
-            return true, {
-                guild = self:GetGuildName(),
-                level = level,
-                classId = classId or guidClassId,
-                raceId = raceId,
-            }
-        end
-    end
-    return false, nil
+    self:EnsureMemberCache()
+    local info = self.memberByName[self:NormalizeName(name)]
+    return info ~= nil, info
 end
 
 function Enricher:PassesGuildFilter(name, guildHint)
     if guildHint and self:IsSameGuild(guildHint) then
         return true
     end
-    return self:IsGuildMemberByRoster(name)
+    if not name or not IsInGuild() then
+        return false
+    end
+    self:EnsureMemberCache()
+    return self.memberByName[self:NormalizeName(name)] ~= nil
 end
 
 function Enricher:ApplyImmediateEnrichment(death, playerGuid)
@@ -198,8 +236,11 @@ function Enricher:WhoInfoFromApi(info)
     }
 end
 
-function Enricher:QueueWho(name, callback)
+function Enricher:LookupIdentity(name, callback)
     if not name or name == "" then
+        if callback then
+            callback(nil)
+        end
         return
     end
 
@@ -212,110 +253,10 @@ function Enricher:QueueWho(name, callback)
         return
     end
 
-    table.insert(self.whoQueue, { name = name, callback = callback })
-    self:PumpWhoQueue()
-end
-
-function Enricher:PumpWhoQueue()
-    if self.whoPending or #self.whoQueue == 0 then
-        return
+    local _, rosterInfo = self:IsGuildMemberByRoster(name)
+    if callback then
+        callback(rosterInfo and self:WhoInfoFromApi(rosterInfo) or nil)
     end
-    local item = table.remove(self.whoQueue, 1)
-    self.whoPending = item
-    self.whoPendingKey = self:NormalizeWhoName(item.name)
-
-    if FriendsFrame then
-        FriendsFrame:UnregisterEvent("WHO_LIST_UPDATE")
-    end
-    if C_FriendList and C_FriendList.SetWhoToUi then
-        C_FriendList.SetWhoToUi(true)
-    end
-
-    local query = 'n-"' .. Util:GetShortPlayerName(item.name) .. '"'
-    if C_FriendList and C_FriendList.SendWho then
-        C_FriendList.SendWho(query)
-    else
-        SendWho(query)
-    end
-
-    C_Timer.After(5, function()
-        if self.whoPending == item then
-            self:FinishWhoRequest(nil)
-        end
-    end)
-end
-
-function Enricher:FinishWhoRequest(info)
-    local item = self.whoPending
-    self.whoPending = nil
-    self.whoPendingKey = nil
-
-    if FriendsFrame then
-        FriendsFrame:RegisterEvent("WHO_LIST_UPDATE")
-    end
-
-    if item and item.callback then
-        item.callback(self:WhoInfoFromApi(info))
-    end
-    self:PumpWhoQueue()
-end
-
-function Enricher:ParseWhoResult(index)
-    if C_FriendList and C_FriendList.GetWhoInfo then
-        local result = C_FriendList.GetWhoInfo(index)
-        if type(result) == "table" then
-            return {
-                name = result.fullName or result.name,
-                guild = result.fullGuildName or result.guild,
-                level = result.level,
-                classFile = result.filename or result.classFile,
-                raceFile = result.raceFile,
-                raceName = result.raceStr or result.race,
-            }
-        end
-        local name, guild, level, _, _, _, classFile, _, raceFile = C_FriendList.GetWhoInfo(index)
-        return {
-            name = name,
-            guild = guild,
-            level = level,
-            classFile = classFile,
-            raceFile = raceFile,
-        }
-    end
-    if GetWhoInfo then
-        local name, guild, level, _, _, _, classFile = GetWhoInfo(index)
-        return {
-            name = name,
-            guild = guild,
-            level = level,
-            classFile = classFile,
-        }
-    end
-end
-
-function Enricher:ReadWhoResult(name)
-    local target = self:NormalizeWhoName(name)
-    local count = 0
-    if C_FriendList and C_FriendList.GetNumWhoResults then
-        count = C_FriendList.GetNumWhoResults()
-    elseif GetNumWhoResults then
-        count = GetNumWhoResults()
-    end
-    for i = 1, count do
-        local parsed = self:ParseWhoResult(i)
-        if parsed and parsed.name and self:NormalizeWhoName(parsed.name) == target then
-            return self:WhoInfoFromApi(parsed)
-        end
-    end
-    return nil
-end
-
-function Enricher:OnWhoListUpdate()
-    if not self.whoPending then
-        return
-    end
-    local info = self:ReadWhoResult(self.whoPending.name)
-    self:FinishWhoRequest(info)
 end
 
 function Enricher:ApplyWhoInfo(death, info)
@@ -350,12 +291,12 @@ function Enricher:ScheduleMissingIdentity(death, callback)
         return
     end
 
-    self:QueueWho(death.name, function(info)
+    self:LookupIdentity(death.name, function(info)
         if info then
             self:ApplyWhoInfo(death, info)
-            if callback then
-                callback(death)
-            end
+        end
+        if callback then
+            callback(death)
         end
     end)
 end

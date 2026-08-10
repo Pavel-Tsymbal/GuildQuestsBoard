@@ -56,6 +56,39 @@ function Util:GetShortPlayerName(fullName)
     return (fullName:match("^([^%-]+)")) or fullName
 end
 
+function Util:IsGuildMemberOnline(playerName)
+    if not playerName then
+        return false
+    end
+    local online = self:GetOnlineGuildMembers()
+    return online[self:GetShortPlayerName(playerName)] == true
+end
+
+function Util:InvalidateOnlineGuildCache()
+    self.onlineGuildCache = nil
+    self.onlineGuildCacheAt = 0
+end
+
+function Util:GetOnlineGuildMembers()
+    local now = GetTime()
+    if self.onlineGuildCache and now - (self.onlineGuildCacheAt or 0) < ns.Constants.ONLINE_ROSTER_CACHE_TTL then
+        return self.onlineGuildCache
+    end
+    local online = {}
+    if IsInGuild() then
+        local numMembers = GetNumGuildMembers()
+        for i = 1, numMembers do
+            local rosterName, _, _, _, _, _, _, _, isOnline = GetGuildRosterInfo(i)
+            if rosterName and (isOnline == true or isOnline == 1) then
+                online[self:GetShortPlayerName(rosterName)] = true
+            end
+        end
+    end
+    self.onlineGuildCache = online
+    self.onlineGuildCacheAt = now
+    return online
+end
+
 function Util:StripChatLinks(text)
     if not text or text == "" then
         return ""

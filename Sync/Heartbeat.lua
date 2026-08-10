@@ -7,12 +7,15 @@ ns.Heartbeat = Heartbeat
 
 Heartbeat.peers = {}
 Heartbeat.timer = nil
+Heartbeat.tickPending = false
+Heartbeat.lastMismatchCheckAt = 0
 
 function Heartbeat:Init()
     self.timer = ns.GQ:ScheduleRepeatingTimer(function()
-        Heartbeat:Tick()
+        Heartbeat:ScheduleTick()
     end, C.HEARTBEAT_INTERVAL)
     ns.GQ:RegisterEvent("GUILD_ROSTER_UPDATE", function()
+        Util:InvalidateOnlineGuildCache()
         Heartbeat:PrunePeers()
     end)
 end
@@ -24,8 +27,15 @@ function Heartbeat:Stop()
     end
 end
 
-function Heartbeat:OnRosterUpdate()
-    self:PrunePeers()
+function Heartbeat:ScheduleTick()
+    if self.tickPending then
+        return
+    end
+    self.tickPending = true
+    C_Timer.After(0, function()
+        Heartbeat.tickPending = false
+        Heartbeat:Tick()
+    end)
 end
 
 function Heartbeat:Tick()
@@ -33,8 +43,7 @@ function Heartbeat:Tick()
         return
     end
     self:PrunePeers()
-    local store = ns.Storage:GetGuildStore()
-    local eventCount = store and #store.events or 0
+    local eventCount = ns.Storage:GetEventCount()
     ns.Transport:SendHeartbeat({
         version = C.VERSION,
         lamport = ns.Storage:GetLogicalClock(),
@@ -75,14 +84,19 @@ function Heartbeat:HandleHeartbeat(sender, data)
     self:RegisterPeer(sender, data.version, data.lamport, data.stateHash, data.eventCount)
     if not compatible then
         ns.GQ:Fire("VersionMismatch", sender, data.version)
+        return
     end
-    if data.stateHash and data.stateHash ~= ns.Storage:GetStateHash() then
-        local store = ns.Storage:GetGuildStore()
-        local localEvents = store and #store.events or 0
-        if (data.eventCount and data.eventCount > localEvents)
-            or ns.Storage:CountDeathEvents() > ns.Storage:CountDeathRecords() then
-            ns.SyncEngine:OnHashMismatch(sender)
-        end
+    if not data.stateHash or data.stateHash == ns.Storage:GetStateHash() then
+        return
+    end
+    local now = GetTime()
+    if now - self.lastMismatchCheckAt < C.HEARTBEAT_MISMATCH_COOLDOWN then
+        return
+    end
+    local localEvents = ns.Storage:GetEventCount()
+    if (data.eventCount and data.eventCount > localEvents) or ns.Storage:HasDeathProjectionGap() then
+        self.lastMismatchCheckAt = now
+        ns.SyncEngine:OnHashMismatch(sender)
     end
 end
 
@@ -101,11 +115,10 @@ function Heartbeat:PrunePeers()
 end
 
 function Heartbeat:BroadcastNow()
-    self:Tick()
+    self:ScheduleTick()
 end
 
 function Heartbeat:GetOnlineAddonCount()
-    self:PrunePeers()
     local count = 0
     for _, peer in pairs(self.peers) do
         if peer.compatible then
@@ -119,7 +132,6 @@ function Heartbeat:GetOnlineAddonCount()
 end
 
 function Heartbeat:GetPeers()
-    self:PrunePeers()
     return self.peers
 end
 

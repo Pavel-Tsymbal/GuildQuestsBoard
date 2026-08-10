@@ -17,16 +17,27 @@ function GuildRank:Init()
 end
 
 function GuildRank:Refresh()
+    local now = GetTime()
+    if self.lastRefreshAt and now - self.lastRefreshAt < 5 then
+        return
+    end
+    self.lastRefreshAt = now
     if C_GuildInfo and C_GuildInfo.GuildRoster then
-        C_GuildInfo.GuildRoster()
+        pcall(C_GuildInfo.GuildRoster)
     elseif GuildRoster then
-        GuildRoster()
+        pcall(GuildRoster)
     end
 end
 
 function GuildRank:OnRosterUpdate()
-    self:RebuildCache()
-    ns.GQ:Fire("GuildRosterUpdated")
+    if self.rebuildTimer then
+        return
+    end
+    self.rebuildTimer = C_Timer.After(1, function()
+        self.rebuildTimer = nil
+        self:RebuildCache()
+        ns.GQ:Fire("GuildRosterUpdated")
+    end)
 end
 
 function GuildRank:RebuildCache()
@@ -92,8 +103,7 @@ function GuildRank:GetRankIndex(playerName)
     if self.cache[short] ~= nil then
         return self:NormalizeRankIndex(self.cache[short])
     end
-    self:Refresh()
-    return self:NormalizeRankIndex(self.cache[short])
+    return nil
 end
 
 function GuildRank:GetNumRanks()

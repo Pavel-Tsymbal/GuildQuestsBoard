@@ -93,6 +93,12 @@ function Projections:ReplayMissingDeaths()
             end
         end
     end
+    if replayed > 0 then
+        local store = ns.Storage:GetGuildStore()
+        if store then
+            store._deathRecordCount = nil
+        end
+    end
     return replayed
 end
 

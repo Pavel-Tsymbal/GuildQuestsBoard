@@ -91,8 +91,11 @@ function Tracker:AnnounceToGuild(title)
     if not IsInGuild() or not title then
         return
     end
+    if InCombatLockdown and InCombatLockdown() then
+        return
+    end
     local message = string.format(ns.L["ACHIEV_GUILD_ANNOUNCE"], ns.Util:GetPlayerName(), title)
-    SendChatMessage(message, "GUILD")
+    pcall(SendChatMessage, message, "GUILD")
 end
 
 function Tracker:OnQuestTurnedIn(questId)

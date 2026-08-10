@@ -8,6 +8,8 @@ ns.DeathLogCollector = Collector
 Collector.frame = nil
 Collector.pendingSource = nil
 Collector.hardcoreChannelId = nil
+Collector.channelListenerActive = false
+Collector.combatLogActive = false
 
 local DAMAGE_SUBEVENTS = {
     SWING_DAMAGE = true,
@@ -20,8 +22,8 @@ local DAMAGE_SUBEVENTS = {
 function Collector:Init()
     self.frame = CreateFrame("Frame")
     self.frame:RegisterEvent("PLAYER_DEAD")
-    self.frame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
-    self.frame:RegisterEvent("CHAT_MSG_CHANNEL")
+    self.frame:RegisterEvent("PLAYER_REGEN_DISABLED")
+    self.frame:RegisterEvent("PLAYER_REGEN_ENABLED")
     self.frame:RegisterEvent("PLAYER_ENTERING_WORLD")
     self.frame:RegisterEvent("CHAT_MSG_SYSTEM")
     pcall(function()
@@ -30,6 +32,31 @@ function Collector:Init()
     self.frame:SetScript("OnEvent", function(_, event, ...)
         self:OnEvent(event, ...)
     end)
+end
+
+function Collector:SetCombatLogActive(active)
+    if active == self.combatLogActive then
+        return
+    end
+    self.combatLogActive = active
+    if active then
+        self.frame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+    else
+        self.frame:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+        self.pendingSource = nil
+    end
+end
+
+function Collector:SetChannelListenerActive(active)
+    if active == self.channelListenerActive then
+        return
+    end
+    self.channelListenerActive = active
+    if active then
+        self.frame:RegisterEvent("CHAT_MSG_CHANNEL")
+    else
+        self.frame:UnregisterEvent("CHAT_MSG_CHANNEL")
+    end
 end
 
 function Collector:IsHardcoreActive()
@@ -43,19 +70,32 @@ function Collector:EnsureHardcoreChannel()
     if not self:IsHardcoreActive() then
         return
     end
+    if InCombatLockdown and InCombatLockdown() then
+        if not self.channelRetryTimer then
+            self.channelRetryTimer = C_Timer.After(3, function()
+                self.channelRetryTimer = nil
+                self:EnsureHardcoreChannel()
+            end)
+        end
+        return
+    end
     local channelIndex = GetChannelName("HardcoreDeaths")
     if channelIndex and channelIndex > 0 then
         self.hardcoreChannelId = channelIndex
+        self:SetChannelListenerActive(true)
         return
     end
-    if JoinPermanentChannel then
-        JoinPermanentChannel("HardcoreDeaths")
-    else
-        JoinChannelByName("HardcoreDeaths")
-    end
+    pcall(function()
+        if JoinPermanentChannel then
+            JoinPermanentChannel("HardcoreDeaths")
+        else
+            JoinChannelByName("HardcoreDeaths")
+        end
+    end)
     channelIndex = GetChannelName("HardcoreDeaths")
     if channelIndex and channelIndex > 0 then
         self.hardcoreChannelId = channelIndex
+        self:SetChannelListenerActive(true)
     end
 end
 
@@ -239,15 +279,7 @@ function Collector:SubmitBlizzardDeath(parsed, playerGuid)
             ns.DeathLogEnricher:ApplyWhoInfo(death, rosterInfo)
         end
         commit()
-        return
     end
-
-    ns.DeathLogEnricher:QueueWho(death.name, function(info)
-        if info and ns.DeathLogEnricher:IsSameGuild(info.guild) then
-            ns.DeathLogEnricher:ApplyWhoInfo(death, info)
-            commit()
-        end
-    end)
 end
 
 function Collector:OnChannelDeathMessage(message, playerGuid)
@@ -264,6 +296,15 @@ end
 function Collector:OnEvent(event, ...)
     if event == "PLAYER_ENTERING_WORLD" then
         self:EnsureHardcoreChannel()
+        if IsInGuild() and InCombatLockdown and InCombatLockdown() then
+            self:SetCombatLogActive(true)
+        end
+    elseif event == "PLAYER_REGEN_DISABLED" then
+        if IsInGuild() then
+            self:SetCombatLogActive(true)
+        end
+    elseif event == "PLAYER_REGEN_ENABLED" then
+        self:SetCombatLogActive(false)
     elseif event == "COMBAT_LOG_EVENT_UNFILTERED" then
         self:OnCombatLog()
     elseif event == "PLAYER_DEAD" then

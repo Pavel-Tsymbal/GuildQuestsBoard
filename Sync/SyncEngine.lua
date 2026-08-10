@@ -11,7 +11,6 @@ SyncEngine.lastCatchUpTarget = nil
 SyncEngine.lastCatchUpAt = 0
 SyncEngine.lastFullReplayAt = 0
 SyncEngine.lastGuildReadyAt = 0
-SyncEngine.catchUpDebounceTimer = nil
 SyncEngine.rosterCatchUpTimer = nil
 SyncEngine.responseQueue = {}
 SyncEngine.responsePumpActive = false
@@ -27,9 +26,6 @@ function SyncEngine:Init()
         if Util:GetGuildKey() then
             SyncEngine:ScheduleRosterCatchUp()
         end
-    end)
-    ns.GQ:RegisterCallback("PeersUpdated", function()
-        SyncEngine:ScheduleDebouncedCatchUp()
     end)
 end
 
@@ -56,25 +52,16 @@ function SyncEngine:NoteCatchUp(wantFull)
     end
 end
 
-function SyncEngine:ScheduleDebouncedCatchUp()
-    if self.catchUpDebounceTimer then
-        ns.GQ:CancelTimer(self.catchUpDebounceTimer)
-    end
-    self.catchUpDebounceTimer = ns.GQ:ScheduleTimer(function()
-        self.catchUpDebounceTimer = nil
-        self:RequestCatchUp(false)
-    end, 5)
-end
-
 function SyncEngine:ScheduleRosterCatchUp()
     if self.rosterCatchUpTimer then
-        ns.GQ:CancelTimer(self.rosterCatchUpTimer)
+        return
     end
     self.rosterCatchUpTimer = ns.GQ:ScheduleTimer(function()
         self.rosterCatchUpTimer = nil
-        ns.Projections:ReplayMissingDeaths()
-        self:RequestCatchUp(false)
-    end, 15)
+        if ns.Storage:HasDeathProjectionGap() then
+            ns.Projections:ReplayMissingDeaths()
+        end
+    end, C.ROSTER_CATCHUP_DEBOUNCE)
 end
 
 function SyncEngine:OnGuildReady()
@@ -95,6 +82,7 @@ end
 function SyncEngine:OnGuildChange()
     if Util:GetGuildKey() then
         ns.Storage:EnsureGuildStore()
+        ns.DeathLogEnricher:ScheduleMemberCacheRebuild()
         ns.GuildRank:Refresh()
         self:OnGuildReady()
         ns.GQ:Fire("GuildChanged")
@@ -205,11 +193,10 @@ function SyncEngine:HandleStateHash(sender, payload)
 end
 
 function SyncEngine:NeedsFullReplay(peer)
-    if ns.Storage:CountDeathEvents() > ns.Storage:CountDeathRecords() then
+    if ns.Storage:HasDeathProjectionGap() then
         return true
     end
-    local store = ns.Storage:GetGuildStore()
-    if peer and peer.eventCount and store and peer.eventCount > #store.events then
+    if peer and peer.eventCount and peer.eventCount > ns.Storage:GetEventCount() then
         return true
     end
     return false
@@ -232,7 +219,7 @@ function SyncEngine:SelectCatchUpPeer(forceFull)
     local bestClock = -1
     local bestSince = since
     for name, peer in pairs(ns.Heartbeat:GetPeers()) do
-        if name ~= Util:GetPlayerName() and peer.compatible then
+        if name ~= Util:GetPlayerName() and peer.compatible and Util:IsGuildMemberOnline(name) then
             local clock = peer.logicalClock or 0
             local peerSince = self:GetCatchUpSince(peer, localHash, forceFull)
             if peerSince <= 0 or clock > since then
@@ -250,6 +237,9 @@ end
 function SyncEngine:OnHashMismatch(sender)
     local peer = ns.Heartbeat:GetPeers()[sender]
     if not self:NeedsFullReplay(peer) then
+        return
+    end
+    if not Util:IsGuildMemberOnline(sender) then
         return
     end
     if not self:CanRunCatchUp(true) then
@@ -270,7 +260,7 @@ function SyncEngine:RequestCatchUp(verbose, forceFull)
         return
     end
     forceFull = forceFull or verbose
-    if ns.Storage:CountDeathEvents() > ns.Storage:CountDeathRecords() then
+    if ns.Storage:HasDeathProjectionGap() then
         ns.Projections:ReplayMissingDeaths()
     end
     local bestPeer, bestSince = self:SelectCatchUpPeer(forceFull)

@@ -117,6 +117,13 @@ function Storage:AppendEvent(event)
     if event.lamport and event.lamport > store.logicalClock then
         store.logicalClock = event.lamport
     end
+    store._eventCount = #store.events
+    if event.lamport and event.lamport > (store._maxEventLamport or 0) then
+        store._maxEventLamport = event.lamport
+    end
+    if event.type == C.EVENT.GUILD_MEMBER_DIED then
+        store._deathEventCount = (store._deathEventCount or 0) + 1
+    end
     store.stateHash = Util:SimpleHash(tostring(#store.events) .. ":" .. store.logicalClock)
     return true
 end
@@ -149,22 +156,53 @@ function Storage:GetStateHash()
     return store and store.stateHash or "0"
 end
 
+function Storage:InvalidateDeathStats()
+    local store = self:GetGuildStore()
+    if store then
+        store._deathEventCount = nil
+        store._deathRecordCount = nil
+    end
+end
+
 function Storage:CountDeathEvents()
     local store = self:GetGuildStore()
     if not store or not store.events then
         return 0
     end
-    local count = 0
-    for _, event in ipairs(store.events) do
-        if event.type == C.EVENT.GUILD_MEMBER_DIED then
-            count = count + 1
+    if store._deathEventCount == nil then
+        local count = 0
+        for _, event in ipairs(store.events) do
+            if event.type == C.EVENT.GUILD_MEMBER_DIED then
+                count = count + 1
+            end
         end
+        store._deathEventCount = count
     end
-    return count
+    return store._deathEventCount
 end
 
 function Storage:CountDeathRecords()
-    return Util:CountTable(self:GetDeaths())
+    local store = self:GetGuildStore()
+    if not store then
+        return 0
+    end
+    if store._deathRecordCount == nil then
+        store._deathRecordCount = Util:CountTable(store.deaths or {})
+    end
+    return store._deathRecordCount
+end
+
+function Storage:HasDeathProjectionGap()
+    return self:CountDeathEvents() > self:CountDeathRecords()
+end
+
+function Storage:GetEventCount()
+    local store = self:GetGuildStore()
+    if not store or not store.events then
+        return 0
+    end
+    store._eventCount = store._eventCount or #store.events
+    return store._eventCount
 end
 
 function Storage:GetMaxEventLamport()
@@ -172,13 +210,16 @@ function Storage:GetMaxEventLamport()
     if not store then
         return 0
     end
-    local maxLamport = 0
-    for _, event in ipairs(store.events) do
-        if event.lamport and event.lamport > maxLamport then
-            maxLamport = event.lamport
+    if store._maxEventLamport == nil then
+        local maxLamport = 0
+        for _, event in ipairs(store.events) do
+            if event.lamport and event.lamport > maxLamport then
+                maxLamport = event.lamport
+            end
         end
+        store._maxEventLamport = maxLamport
     end
-    return maxLamport
+    return store._maxEventLamport or 0
 end
 
 function Storage:GetLogicalClock()
@@ -281,11 +322,13 @@ function Storage:UpsertDeath(death)
     for id, existing in pairs(store.deaths) do
         if existing.dedupKey and death.dedupKey and existing.dedupKey == death.dedupKey then
             store.deaths[id] = self:MergeDeath(existing, death)
+            store._deathRecordCount = nil
             self:PruneDeaths()
             return id
         end
     end
     store.deaths[death.id] = death
+    store._deathRecordCount = nil
     self:PruneDeaths()
     return death.id
 end

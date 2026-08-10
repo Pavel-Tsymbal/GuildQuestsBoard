@@ -85,22 +85,24 @@ function Replicator:ApplyEvent(event, isLocal, fromSync)
     if isLocal then
         ns.Transport:BroadcastEvent(event)
     end
-    if event.type == C.EVENT.QUEST_DELETED then
-        local questId = event.payload and event.payload.questId
-        if questId then
-            ns.GQ:Fire("QuestDeleted", questId)
-        end
-    else
-        ns.GQ:Fire("QuestUpdated", event.payload and event.payload.questId or event.payload and event.payload.id)
-        if event.type == C.EVENT.QUEST_CREATED then
-            local questId = event.payload and event.payload.id
+    if not fromSync then
+        if event.type == C.EVENT.QUEST_DELETED then
+            local questId = event.payload and event.payload.questId
             if questId then
-                ns.GQ:Fire("QuestCreated", questId)
+                ns.GQ:Fire("QuestDeleted", questId)
+            end
+        elseif event.type ~= C.EVENT.GUILD_MEMBER_DIED and event.type ~= C.EVENT.SETTINGS_UPDATED then
+            ns.GQ:Fire("QuestUpdated", event.payload and event.payload.questId or event.payload and event.payload.id)
+            if event.type == C.EVENT.QUEST_CREATED then
+                local questId = event.payload and event.payload.id
+                if questId then
+                    ns.GQ:Fire("QuestCreated", questId)
+                end
             end
         end
-    end
-    if event.type == C.EVENT.SETTINGS_UPDATED then
-        ns.GQ:Fire("GuildSettingsUpdated")
+        if event.type == C.EVENT.SETTINGS_UPDATED then
+            ns.GQ:Fire("GuildSettingsUpdated")
+        end
     end
     if event.type == C.EVENT.GUILD_MEMBER_DIED then
         local death = event.payload and event.payload.death
