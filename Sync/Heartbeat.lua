@@ -77,7 +77,12 @@ function Heartbeat:HandleHeartbeat(sender, data)
         ns.GQ:Fire("VersionMismatch", sender, data.version)
     end
     if data.stateHash and data.stateHash ~= ns.Storage:GetStateHash() then
-        ns.SyncEngine:OnHashMismatch(sender)
+        local store = ns.Storage:GetGuildStore()
+        local localEvents = store and #store.events or 0
+        if (data.eventCount and data.eventCount > localEvents)
+            or ns.Storage:CountDeathEvents() > ns.Storage:CountDeathRecords() then
+            ns.SyncEngine:OnHashMismatch(sender)
+        end
     end
 end
 

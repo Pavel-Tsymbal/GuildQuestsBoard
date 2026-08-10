@@ -8,7 +8,13 @@ ns.SyncEngine = SyncEngine
 
 SyncEngine.catchUpTimer = nil
 SyncEngine.lastCatchUpTarget = nil
-SyncEngine.loginCatchUpPending = false
+SyncEngine.lastCatchUpAt = 0
+SyncEngine.lastFullReplayAt = 0
+SyncEngine.lastGuildReadyAt = 0
+SyncEngine.catchUpDebounceTimer = nil
+SyncEngine.rosterCatchUpTimer = nil
+SyncEngine.responseQueue = {}
+SyncEngine.responsePumpActive = false
 
 function SyncEngine:Init()
     ns.GQ:RegisterEvent("PLAYER_GUILD_UPDATE", function()
@@ -19,36 +25,69 @@ function SyncEngine:Init()
     end)
     ns.GQ:RegisterEvent("GUILD_ROSTER_UPDATE", function()
         if Util:GetGuildKey() then
-            C_Timer.After(2, function()
-                ns.Projections:ReplayMissingDeaths()
-                SyncEngine:RequestCatchUp(false)
-            end)
+            SyncEngine:ScheduleRosterCatchUp()
         end
     end)
     ns.GQ:RegisterCallback("PeersUpdated", function()
-        if SyncEngine.loginCatchUpPending then
-            C_Timer.After(1, function()
-                SyncEngine:RequestCatchUp(false, true)
-            end)
-        end
+        SyncEngine:ScheduleDebouncedCatchUp()
     end)
 end
 
+function SyncEngine:Now()
+    return GetTime()
+end
+
+function SyncEngine:CanRunCatchUp(wantFull)
+    local now = self:Now()
+    if now - self.lastCatchUpAt < C.CATCHUP_COOLDOWN then
+        return false
+    end
+    if wantFull and now - self.lastFullReplayAt < C.FULL_REPLAY_COOLDOWN then
+        return false
+    end
+    return true
+end
+
+function SyncEngine:NoteCatchUp(wantFull)
+    local now = self:Now()
+    self.lastCatchUpAt = now
+    if wantFull then
+        self.lastFullReplayAt = now
+    end
+end
+
+function SyncEngine:ScheduleDebouncedCatchUp()
+    if self.catchUpDebounceTimer then
+        ns.GQ:CancelTimer(self.catchUpDebounceTimer)
+    end
+    self.catchUpDebounceTimer = ns.GQ:ScheduleTimer(function()
+        self.catchUpDebounceTimer = nil
+        self:RequestCatchUp(false)
+    end, 5)
+end
+
+function SyncEngine:ScheduleRosterCatchUp()
+    if self.rosterCatchUpTimer then
+        ns.GQ:CancelTimer(self.rosterCatchUpTimer)
+    end
+    self.rosterCatchUpTimer = ns.GQ:ScheduleTimer(function()
+        self.rosterCatchUpTimer = nil
+        ns.Projections:ReplayMissingDeaths()
+        self:RequestCatchUp(false)
+    end, 15)
+end
+
 function SyncEngine:OnGuildReady()
-    self.loginCatchUpPending = true
-    C_Timer.After(20, function()
-        self.loginCatchUpPending = false
-    end)
+    local now = self:Now()
+    if now - self.lastGuildReadyAt < C.GUILD_READY_DEBOUNCE then
+        return
+    end
+    self.lastGuildReadyAt = now
+
     ns.Projections:ReplayMissingDeaths()
     ns.Heartbeat:BroadcastNow()
-    C_Timer.After(2, function()
-        ns.Heartbeat:BroadcastNow()
-    end)
-    C_Timer.After(5, function()
-        ns.Heartbeat:BroadcastNow()
-    end)
     C_Timer.After(C.SYNC_CATCHUP_DELAY, function()
-        self:RequestCatchUp(false, true)
+        self:RequestCatchUp(false)
         ns.Transport:SendStateHash(ns.Storage:GetStateHash(), ns.Storage:GetLogicalClock())
     end)
 end
@@ -106,44 +145,81 @@ function SyncEngine:HandleEventRequest(sender, payload)
     if not Util:SameGuildKey(guildKey, Util:GetGuildKey()) then
         return
     end
-    local events = ns.Storage:GetEventsSince(sinceLamport)
-    if #events > 0 then
-        ns.Transport:SendEvents(sender, events)
+    table.insert(self.responseQueue, {
+        sender = sender,
+        sinceLamport = sinceLamport,
+    })
+    self:PumpEventResponseQueue()
+end
+
+function SyncEngine:PumpEventResponseQueue()
+    if self.responsePumpActive or #self.responseQueue == 0 then
+        return
     end
+    self.responsePumpActive = true
+    local item = table.remove(self.responseQueue, 1)
+    C_Timer.After(C.EVENT_RESPONSE_DELAY, function()
+        local events = ns.Storage:GetEventsSince(item.sinceLamport)
+        if #events > 0 then
+            ns.Transport:SendEvents(item.sender, events)
+        end
+        self.responsePumpActive = false
+        self:PumpEventResponseQueue()
+    end)
 end
 
 function SyncEngine:HandleEventResponse(payload, sender)
-    local events = ns.Codec:DecodeEvents(payload)
-    if not events or type(events) ~= "table" then
-        return
+    C_Timer.After(0, function()
+        local events = ns.Codec:DecodeEvents(payload)
+        if not events or type(events) ~= "table" or #events == 0 then
+            return
+        end
+        table.sort(events, Util.CompareEventOrder)
+        SyncEngine:ApplyEventsBatch(events, sender, 1)
+    end)
+end
+
+function SyncEngine:ApplyEventsBatch(events, sender, index)
+    local batchEnd = math.min(index + C.EVENT_APPLY_BATCH - 1, #events)
+    for i = index, batchEnd do
+        ns.Replicator:ProcessRemoteEvent(events[i], sender)
     end
-    table.sort(events, Util.CompareEventOrder)
-    for _, event in ipairs(events) do
-        ns.Replicator:ProcessRemoteEvent(event, sender)
+    if batchEnd < #events then
+        C_Timer.After(0, function()
+            self:ApplyEventsBatch(events, sender, batchEnd + 1)
+        end)
+        return
     end
     ns.Projections:ReplayMissingDeaths()
     ns.GQ:Fire("SyncComplete")
 end
 
 function SyncEngine:HandleStateHash(sender, payload)
-    local hash, lamport = Protocol:ParseStateHashBeacon(payload)
+    local hash = Protocol:ParseStateHashBeacon(payload)
     if hash ~= ns.Storage:GetStateHash() then
-        self:OnHashMismatch(sender)
+        local peer = ns.Heartbeat:GetPeers()[sender]
+        if self:NeedsFullReplay(peer) then
+            self:OnHashMismatch(sender)
+        end
     end
+end
+
+function SyncEngine:NeedsFullReplay(peer)
+    if ns.Storage:CountDeathEvents() > ns.Storage:CountDeathRecords() then
+        return true
+    end
+    local store = ns.Storage:GetGuildStore()
+    if peer and peer.eventCount and store and peer.eventCount > #store.events then
+        return true
+    end
+    return false
 end
 
 function SyncEngine:GetCatchUpSince(peer, localHash, forceFull)
     if forceFull then
         return C.FULL_REPLAY_SINCE
     end
-    if peer and peer.stateHash and peer.stateHash ~= localHash then
-        return C.FULL_REPLAY_SINCE
-    end
-    local store = ns.Storage:GetGuildStore()
-    if peer and peer.eventCount and store and peer.eventCount > #store.events then
-        return C.FULL_REPLAY_SINCE
-    end
-    if ns.Storage:CountDeathEvents() > ns.Storage:CountDeathRecords() then
+    if peer and peer.stateHash and peer.stateHash ~= localHash and self:NeedsFullReplay(peer) then
         return C.FULL_REPLAY_SINCE
     end
     return ns.Storage:GetMaxEventLamport()
@@ -172,11 +248,19 @@ function SyncEngine:SelectCatchUpPeer(forceFull)
 end
 
 function SyncEngine:OnHashMismatch(sender)
+    local peer = ns.Heartbeat:GetPeers()[sender]
+    if not self:NeedsFullReplay(peer) then
+        return
+    end
+    if not self:CanRunCatchUp(true) then
+        return
+    end
     if self.catchUpTimer then
         ns.GQ:CancelTimer(self.catchUpTimer)
     end
     self.lastCatchUpTarget = sender
     self.catchUpTimer = ns.GQ:ScheduleTimer(function()
+        self:NoteCatchUp(true)
         ns.Transport:RequestEvents(sender, C.FULL_REPLAY_SINCE)
     end, 1 + math.random() * 2)
 end
@@ -185,21 +269,29 @@ function SyncEngine:RequestCatchUp(verbose, forceFull)
     if not IsInGuild() then
         return
     end
+    forceFull = forceFull or verbose
     if ns.Storage:CountDeathEvents() > ns.Storage:CountDeathRecords() then
         ns.Projections:ReplayMissingDeaths()
     end
-    local bestPeer, bestSince = self:SelectCatchUpPeer(verbose or forceFull)
-    if bestPeer then
-        ns.Transport:RequestEvents(bestPeer, bestSince)
+    local bestPeer, bestSince = self:SelectCatchUpPeer(forceFull)
+    if not bestPeer then
         if verbose then
             ns.GQ:Print(ns.L["SLASH_SYNC"])
+            ns.Transport:SendStateHash(ns.Storage:GetStateHash(), ns.Storage:GetLogicalClock())
+            if ns.Heartbeat:GetOnlineAddonCount() <= 1 then
+                ns.GQ:Print(ns.L["SLASH_SYNC_NO_PEERS"])
+            end
         end
-    elseif verbose then
+        return
+    end
+    local wantFull = bestSince <= 0
+    if not verbose and not self:CanRunCatchUp(wantFull) then
+        return
+    end
+    self:NoteCatchUp(wantFull)
+    ns.Transport:RequestEvents(bestPeer, bestSince)
+    if verbose then
         ns.GQ:Print(ns.L["SLASH_SYNC"])
-        ns.Transport:SendStateHash(ns.Storage:GetStateHash(), ns.Storage:GetLogicalClock())
-        if ns.Heartbeat:GetOnlineAddonCount() <= 1 then
-            ns.GQ:Print(ns.L["SLASH_SYNC_NO_PEERS"])
-        end
     end
 end
 

@@ -62,7 +62,6 @@ function GQ:OnEnable()
     local function bootstrap()
         if Util:GetGuildKey() then
             ns.DB:EnsureGuildStore()
-            ns.SyncEngine:OnGuildReady()
             ns.MainUI:UpdateCreateButtonState()
             if not self.bootstrapped then
                 ns.Scheduler:Start()
@@ -73,7 +72,6 @@ function GQ:OnEnable()
     ns.GuildRank:Refresh()
     bootstrap()
     C_Timer.After(3, bootstrap)
-    C_Timer.After(10, bootstrap)
     Events:Fire("AddonEnabled")
 end
 

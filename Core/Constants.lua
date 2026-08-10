@@ -12,6 +12,11 @@ ns.Constants = {
     SYNC_CATCHUP_DELAY = 3,
     -- Full journal replay; -1 works with old peers (GetEventsSince(0) skips lamport=0 deaths).
     FULL_REPLAY_SINCE = -1,
+    CATCHUP_COOLDOWN = 30,
+    FULL_REPLAY_COOLDOWN = 120,
+    GUILD_READY_DEBOUNCE = 30,
+    EVENT_APPLY_BATCH = 10,
+    EVENT_RESPONSE_DELAY = 0.05,
 
     -- Set to false before release; grants guild settings edit access without being GM.
     DEBUG_GUILD_MASTER = false,
