@@ -111,8 +111,22 @@ function Notifier:ShouldNotify()
     return ns.PersonalSettings:ShouldShowDeathNotification()
 end
 
-function Notifier:OnDeath(death, isLocal)
+function Notifier:IsRecentDeath(death)
+    if not death or not death.date or death.date == 0 then
+        return false
+    end
+    local age = Util:Now() - (tonumber(death.date) or 0)
+    if age < 0 then
+        age = 0
+    end
+    return age <= ns.Constants.DEATHLOG_NOTIFY_MAX_AGE
+end
+
+function Notifier:OnDeath(death, isLocal, fromSync)
     if not death or not self:ShouldNotify() then
+        return
+    end
+    if fromSync or (not isLocal and not self:IsRecentDeath(death)) then
         return
     end
     if not ns.DeathLog:ShouldAlertDeath(death) then

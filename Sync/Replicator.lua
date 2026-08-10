@@ -34,7 +34,7 @@ function Replicator:ProcessLocalEvent(event)
     return self:ApplyEvent(event, true)
 end
 
-function Replicator:ProcessRemoteEvent(event, sender)
+function Replicator:ProcessRemoteEvent(event, sender, fromSync)
     if not event or not event.id then
         return false
     end
@@ -68,10 +68,10 @@ function Replicator:ProcessRemoteEvent(event, sender)
             end
         end
     end
-    return self:ApplyEvent(event, false)
+    return self:ApplyEvent(event, false, fromSync)
 end
 
-function Replicator:ApplyEvent(event, isLocal)
+function Replicator:ApplyEvent(event, isLocal, fromSync)
     if ns.Storage:HasSeenEvent(event.id) then
         return false
     end
@@ -112,7 +112,7 @@ function Replicator:ApplyEvent(event, isLocal)
                 end
             end
         end
-        ns.GQ:Fire("GuildMemberDied", death, isLocal)
+        ns.GQ:Fire("GuildMemberDied", death, isLocal, fromSync)
     end
     return true, event
 end

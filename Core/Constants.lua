@@ -33,6 +33,8 @@ ns.Constants = {
     DEATHLOG_DISPLAY_MAX = 50,
     DEATHLOG_STORE_MAX = 200,
     DEATHLOG_DEDUP_WINDOW = 120,
+    -- Live deaths only; synced/historical entries skip the toast.
+    DEATHLOG_NOTIFY_MAX_AGE = 30,
 
     TIME_MODE = {
         NONE = "NONE",

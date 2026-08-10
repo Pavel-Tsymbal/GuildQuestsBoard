@@ -153,7 +153,7 @@ function DeathLog:MergeDeath(death)
 
     local stored = ns.Storage:GetDeaths()[id] or death
 
-    ns.GQ:Fire("GuildMemberDied", stored, false)
+    ns.GQ:Fire("GuildMemberDied", stored, false, true)
 
     if ns.MainUI and ns.MainUI:IsDeathLogView() then
 

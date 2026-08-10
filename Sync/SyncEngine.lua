@@ -182,7 +182,7 @@ end
 function SyncEngine:ApplyEventsBatch(events, sender, index)
     local batchEnd = math.min(index + C.EVENT_APPLY_BATCH - 1, #events)
     for i = index, batchEnd do
-        ns.Replicator:ProcessRemoteEvent(events[i], sender)
+        ns.Replicator:ProcessRemoteEvent(events[i], sender, true)
     end
     if batchEnd < #events then
         C_Timer.After(0, function()
