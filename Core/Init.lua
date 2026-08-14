@@ -14,6 +14,7 @@ ns.GQ = GQ
 GQ.modules = {}
 
 function GQ:OnInitialize()
+    ns.ChatFilter:Init()
     ns.DB = ns.Storage
     ns.DB:Init()
     ns.Locale:Init()

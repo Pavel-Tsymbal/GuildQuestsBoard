@@ -244,15 +244,6 @@ function Enricher:LookupIdentity(name, callback)
         return
     end
 
-    if DeathNotificationLib and DeathNotificationLib.WhoPlayer then
-        DeathNotificationLib.WhoPlayer(name, function(info)
-            if callback then
-                callback(self:WhoInfoFromApi(info))
-            end
-        end)
-        return
-    end
-
     local _, rosterInfo = self:IsGuildMemberByRoster(name)
     if callback then
         callback(rosterInfo and self:WhoInfoFromApi(rosterInfo) or nil)
@@ -285,6 +276,13 @@ end
 
 function Enricher:ScheduleMissingIdentity(death, callback)
     if not death or (death.classId and death.raceId) then
+        if callback then
+            callback(death)
+        end
+        return
+    end
+
+    if not self:IsGuildMemberByRoster(death.name) then
         if callback then
             callback(death)
         end

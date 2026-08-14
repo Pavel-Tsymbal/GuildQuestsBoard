@@ -1,4 +1,5 @@
 local _, ns = ...
+local C = ns.Constants
 
 local Events = {}
 ns.Events = Events
@@ -32,7 +33,7 @@ function Events:Fire(event, ...)
     end
     for _, entry in ipairs(list) do
         local ok, err = pcall(entry.callback, entry.owner, ...)
-        if not ok and ns.GQ and ns.GQ.Print then
+        if not ok and C.DEBUG_SYNC and ns.GQ and ns.GQ.Print then
             ns.GQ:Print("Event error:", event, err)
         end
     end

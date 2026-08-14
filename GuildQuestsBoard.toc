@@ -13,6 +13,7 @@ embeds.xml
 Core\Constants.lua
 Core\Util.lua
 Core\Events.lua
+Core\ChatFilter.lua
 Core\Init.lua
 
 Locales\Locale.lua

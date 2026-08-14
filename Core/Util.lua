@@ -57,11 +57,29 @@ function Util:GetShortPlayerName(fullName)
 end
 
 function Util:IsGuildMemberOnline(playerName)
-    if not playerName then
-        return false
+    return self:FindOnlineRosterName(playerName) ~= nil
+end
+
+-- Exact roster name for whisper; nil if not in guild roster or offline.
+function Util:FindOnlineRosterName(playerName)
+    if not playerName or not IsInGuild() then
+        return nil
     end
-    local online = self:GetOnlineGuildMembers()
-    return online[self:GetShortPlayerName(playerName)] == true
+    if GetNumGuildMembers() == 0 and GuildRoster then
+        GuildRoster()
+    end
+    local short = self:GetShortPlayerName(playerName)
+    local numMembers = GetNumGuildMembers()
+    for i = 1, numMembers do
+        local rosterName, _, _, _, _, _, _, _, isOnline = GetGuildRosterInfo(i)
+        if rosterName and self:GetShortPlayerName(rosterName) == short then
+            if isOnline == true or isOnline == 1 then
+                return rosterName
+            end
+            return nil
+        end
+    end
+    return nil
 end
 
 function Util:InvalidateOnlineGuildCache()

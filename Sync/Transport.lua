@@ -19,17 +19,6 @@ function Transport:Init()
     end
 end
 
-function Transport:ResolveMemberName(name)
-    if not name or not IsInGuild() then
-        return name
-    end
-    local full = ns.DeathLogEnricher:GetRosterFullName(name)
-    if full then
-        return full
-    end
-    return name
-end
-
 function Transport:Send(opcode, payload, channel, target, prio)
     channel = channel or "GUILD"
     local message = Protocol:Pack(opcode, payload or "")
@@ -45,13 +34,14 @@ end
 
 function Transport:SendWhisper(opcode, payload, target, prio)
     if not target then
-        return
+        return false
     end
-    target = self:ResolveMemberName(target)
-    if not ns.Util:IsGuildMemberOnline(target) then
-        return
+    local whisperTarget = ns.Util:FindOnlineRosterName(target)
+    if not whisperTarget then
+        return false
     end
-    self:Send(opcode, payload, "WHISPER", target, prio)
+    self:Send(opcode, payload, "WHISPER", whisperTarget, prio)
+    return true
 end
 
 function Transport:PumpMessageQueue()
