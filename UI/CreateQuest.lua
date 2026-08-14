@@ -381,6 +381,7 @@ function CreateQuest:CreateDescriptionField(y)
     end)
     desc:SetScript("OnEscapePressed", function(editBox)
         editBox:ClearFocus()
+        ns.CreateQuest:Hide()
     end)
     desc:SetScript("OnTextChanged", function(editBox)
         local text = editBox:GetText() or ""

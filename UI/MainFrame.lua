@@ -381,6 +381,28 @@ function MainUI:ShowSettings()
     self:ShowSettingsView()
 end
 
+function MainUI:RegisterEscapeFrames()
+    local frameNames = {
+        "GuildQuestsMainFrame",
+        "GuildQuestsDetailFrame",
+        "GuildQuestsCreateFrame",
+    }
+    for _, name in ipairs(frameNames) do
+        if _G[name] then
+            local alreadyRegistered = false
+            for i = 1, #UISpecialFrames do
+                if UISpecialFrames[i] == name then
+                    alreadyRegistered = true
+                    break
+                end
+            end
+            if not alreadyRegistered then
+                tinsert(UISpecialFrames, name)
+            end
+        end
+    end
+end
+
 function MainUI:Hide()
     self.frame:Hide()
 end
