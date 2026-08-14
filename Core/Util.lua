@@ -277,6 +277,36 @@ function Util:Trim(s)
     return (s:gsub("^%s+", ""):gsub("%s+$", ""))
 end
 
+-- Lua # counts UTF-8 bytes; WoW text is UTF-8 (Cyrillic is 2 bytes per letter).
+function Util:UTF8Len(str)
+    if not str or str == "" then
+        return 0
+    end
+    local len = 0
+    local i = 1
+    local byteLen = #str
+    while i <= byteLen do
+        local c = str:byte(i)
+        if not c then
+            break
+        elseif c < 0x80 then
+            i = i + 1
+        elseif c < 0xE0 then
+            i = i + 2
+        elseif c < 0xF0 then
+            i = i + 3
+        else
+            i = i + 4
+        end
+        len = len + 1
+    end
+    return len
+end
+
+function Util:ExceedsTextLimit(str, maxLen)
+    return self:UTF8Len(str) > maxLen
+end
+
 function Util:FormatGold(amount)
     if not amount or amount <= 0 then
         return "0"

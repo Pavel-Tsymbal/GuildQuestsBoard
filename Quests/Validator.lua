@@ -15,13 +15,13 @@ function Validator:ValidateCreate(data)
     if title == "" then
         return false, ns.L["ERR_INVALID_TITLE"]
     end
-    if #title > C.TITLE_MAX then
+    if Util:ExceedsTextLimit(title, C.TITLE_MAX) then
         return false, ns.L["ERR_INVALID_TITLE"]
     end
     if description == "" then
         return false, ns.L["ERR_INVALID_DESC"]
     end
-    if #description > C.DESC_MAX then
+    if Util:ExceedsTextLimit(description, C.DESC_MAX) then
         return false, string.format(ns.L["ERR_DESC_TOO_LONG"], C.DESC_MAX)
     end
     local maxP = tonumber(data.maxParticipants)
@@ -39,7 +39,7 @@ function Validator:ValidateCreate(data)
         return false, ns.L["ERR_INVALID_LEVEL"]
     end
     local reward = Util:Trim(data.reward or "")
-    if #reward > C.REWARD_MAX then
+    if Util:ExceedsTextLimit(reward, C.REWARD_MAX) then
         return false, ns.L["ERR_INVALID_REWARD"]
     end
     local timeMode = data.timeMode or C.TIME_MODE.NONE
