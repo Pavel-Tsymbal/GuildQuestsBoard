@@ -263,13 +263,80 @@ function Storage:MakeDeathDedupKey(death)
     return string.lower(Util:GetShortPlayerName(death.name) or death.name) .. "|" .. (death.realm or "") .. "|" .. bucket
 end
 
+function Storage:NormalizeDeathName(name)
+    if not name then
+        return ""
+    end
+    name = string.lower(Util:SanitizePlayerName(name) or name or "")
+    return string.lower(Util:GetShortPlayerName(name) or name)
+end
+
+function Storage:PreferDeathLevel(current, incoming)
+    current = tonumber(current) or 0
+    incoming = tonumber(incoming) or 0
+    if incoming <= 0 then
+        return current
+    end
+    if current <= 0 then
+        return incoming
+    end
+    return math.max(current, incoming)
+end
+
+function Storage:DeathsMatchIdentity(left, right)
+    if not left or not right or not left.name or not right.name then
+        return false
+    end
+    if self:NormalizeDeathName(left.name) ~= self:NormalizeDeathName(right.name) then
+        return false
+    end
+    local leftClass = tonumber(left.classId) or 0
+    local rightClass = tonumber(right.classId) or 0
+    if leftClass > 0 and rightClass > 0 and leftClass ~= rightClass then
+        return false
+    end
+    local leftRace = tonumber(left.raceId) or 0
+    local rightRace = tonumber(right.raceId) or 0
+    if leftRace > 0 and rightRace > 0 and leftRace ~= rightRace then
+        return false
+    end
+    return true
+end
+
+function Storage:DeathIdentityKey(death)
+    if not death or not death.name then
+        return nil
+    end
+    local classId = tonumber(death.classId) or 0
+    local raceId = tonumber(death.raceId) or 0
+    return string.format("%s|%d|%d", self:NormalizeDeathName(death.name), classId, raceId)
+end
+
+function Storage:FindRecentRepeatDeath(death, windowSeconds)
+    if not death or not death.name then
+        return nil, nil
+    end
+    windowSeconds = windowSeconds or C.DEATHLOG_REPEAT_WINDOW
+    local targetDate = tonumber(death.date) or Util:Now()
+    for id, existing in pairs(self:GetDeaths()) do
+        if death.id and existing.id == death.id then
+            -- skip self
+        elseif self:DeathsMatchIdentity(death, existing) then
+            local existingDate = tonumber(existing.date) or 0
+            if math.abs(existingDate - targetDate) <= windowSeconds then
+                return existing, id
+            end
+        end
+    end
+    return nil, nil
+end
+
 function Storage:FindDeathForMerge(death)
     if not death or not death.name then
         return nil, nil
     end
 
     local dedupKey = death.dedupKey or self:MakeDeathDedupKey(death)
-    local targetName = string.lower(Util:SanitizePlayerName(death.name) or death.name or "")
     local targetDate = tonumber(death.date) or 0
 
     for id, existing in pairs(self:GetDeaths()) do
@@ -279,10 +346,9 @@ function Storage:FindDeathForMerge(death)
     end
 
     for id, existing in pairs(self:GetDeaths()) do
-        local existingName = string.lower(Util:SanitizePlayerName(existing.name) or existing.name or "")
-        if existingName == targetName then
+        if self:DeathsMatchIdentity(death, existing) then
             local existingDate = tonumber(existing.date) or 0
-            if math.abs(existingDate - targetDate) <= C.DEATHLOG_DEDUP_WINDOW then
+            if math.abs(existingDate - targetDate) <= C.DEATHLOG_REPEAT_WINDOW then
                 return existing, id
             end
         end
@@ -301,6 +367,8 @@ function Storage:MergeDeath(existing, incoming)
                 if value == "full" or merged.quality ~= "full" then
                     merged.quality = value
                 end
+            elseif field == "level" then
+                merged.level = self:PreferDeathLevel(merged.level, value)
             else
                 merged[field] = value
             end
@@ -323,34 +391,12 @@ function Storage:UpsertDeath(death)
         if existing.dedupKey and death.dedupKey and existing.dedupKey == death.dedupKey then
             store.deaths[id] = self:MergeDeath(existing, death)
             store._deathRecordCount = nil
-            self:PruneDeaths()
             return id
         end
     end
     store.deaths[death.id] = death
     store._deathRecordCount = nil
-    self:PruneDeaths()
     return death.id
-end
-
-function Storage:PruneDeaths()
-    local store = self:GetGuildStore()
-    if not store or not store.deaths then
-        return
-    end
-    local list = {}
-    for id, death in pairs(store.deaths) do
-        list[#list + 1] = { id = id, death = death }
-    end
-    if #list <= C.DEATHLOG_STORE_MAX then
-        return
-    end
-    table.sort(list, function(a, b)
-        return (tonumber(a.death.date) or 0) > (tonumber(b.death.date) or 0)
-    end)
-    for i = C.DEATHLOG_STORE_MAX + 1, #list do
-        store.deaths[list[i].id] = nil
-    end
 end
 
 function Storage:GetDeathList(limit)

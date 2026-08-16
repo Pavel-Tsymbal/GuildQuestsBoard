@@ -182,7 +182,7 @@ function DeathLogPanel:Refresh()
     end
 
     self.header:SetText(ns.L["DEATHLOG_COLUMNS"])
-    local entries, totalCount = ns.DeathLog:GetEntries(C.DEATHLOG_DISPLAY_MAX)
+    local entries, totalCount = ns.DeathLog:GetEntries()
 
     if #entries == 0 then
         self.header:Hide()

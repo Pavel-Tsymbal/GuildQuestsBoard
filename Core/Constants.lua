@@ -33,9 +33,9 @@ ns.Constants = {
     MAX_LEVEL = 60,
     MAX_ITEM_REWARDS = 5,
 
-    DEATHLOG_DISPLAY_MAX = 50,
-    DEATHLOG_STORE_MAX = 200,
     DEATHLOG_DEDUP_WINDOW = 120,
+    -- Same name/class/race within this window is treated as one death (level excluded — roster often lags by 1).
+    DEATHLOG_REPEAT_WINDOW = 3 * 60 * 60,
     -- Live deaths only; synced/historical entries skip the toast.
     DEATHLOG_NOTIFY_MAX_AGE = 30,
 

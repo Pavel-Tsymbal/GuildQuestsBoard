@@ -255,7 +255,7 @@ function Enricher:ApplyWhoInfo(death, info)
         return death
     end
     if info.level and info.level > 0 then
-        death.level = info.level
+        death.level = ns.Storage:PreferDeathLevel(death.level, info.level)
     end
     if info.classId then
         death.classId = info.classId

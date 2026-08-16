@@ -68,6 +68,16 @@ function Replicator:ProcessRemoteEvent(event, sender, fromSync)
             end
         end
     end
+    if event.type == C.EVENT.GUILD_MEMBER_DIED then
+        local death = event.payload and event.payload.death
+        if death then
+            local repeatDeath = ns.Storage:FindRecentRepeatDeath(death)
+            if repeatDeath then
+                ns.Storage:MarkEventSeen(event.id)
+                return false
+            end
+        end
+    end
     return self:ApplyEvent(event, false, fromSync)
 end
 
@@ -106,7 +116,14 @@ function Replicator:ApplyEvent(event, isLocal, fromSync)
     end
     if event.type == C.EVENT.GUILD_MEMBER_DIED then
         local death = event.payload and event.payload.death
-        if death and death.dedupKey then
+        if not death then
+            return true, event
+        end
+        local repeatDeath = ns.Storage:FindRecentRepeatDeath(death)
+        if repeatDeath and repeatDeath.id ~= death.id then
+            return true, event
+        end
+        if death.dedupKey then
             for _, stored in pairs(ns.Storage:GetDeaths()) do
                 if stored.dedupKey == death.dedupKey then
                     death = stored

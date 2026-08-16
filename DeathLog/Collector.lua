@@ -186,6 +186,20 @@ function Collector:OnPlayerDead()
     ns.DeathLog:RecordDeath(death)
 end
 
+function Collector:ParseDeathLevel(plain)
+    if not plain or plain == "" then
+        return nil
+    end
+    return tonumber(plain:match("[Aa]t%s+[Ll]evel%s+(%d+)"))
+        or tonumber(plain:match("[Tt]hey%s+were%s+[Ll]evel%s+(%d+)"))
+        or tonumber(plain:match("[Ll]evel%s+(%d+)"))
+        or tonumber(plain:match("%([Ll]evel%s+(%d+)%)"))
+        or tonumber(plain:match("(%d+)[%-%s]*[Gg][Oo][%-%s]*[Uu]ров"))
+        or tonumber(plain:match("[Uu]ров(?:ень)?[^%d]*(%d+)"))
+        or tonumber(plain:match("(%d+)%s*[Uu]ров"))
+        or tonumber(plain:match("(%d+)%s*[Уу]ров"))
+end
+
 function Collector:ParseBlizzardDeathMessage(text)
     if not text or text == "" then
         return nil
@@ -203,11 +217,7 @@ function Collector:ParseBlizzardDeathMessage(text)
         return nil
     end
 
-    local level = tonumber(plain:match("[Aa]t%s+[Ll]evel%s+(%d+)"))
-        or tonumber(plain:match("[Tt]hey%s+were%s+[Ll]evel%s+(%d+)"))
-        or tonumber(plain:match("[Ll]evel%s+(%d+)"))
-        or tonumber(plain:match("%((%d+)%)"))
-        or tonumber(plain:match("(%d+)%s*[Уу]ров"))
+    local level = self:ParseDeathLevel(plain)
 
     local source, zone = plain:match("[Ss]lain%s+by%s+(.-)%s+in%s+(.+)")
     if not source then

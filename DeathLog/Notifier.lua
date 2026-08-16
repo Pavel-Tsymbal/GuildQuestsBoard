@@ -132,6 +132,10 @@ function Notifier:OnDeath(death, isLocal, fromSync)
     if not ns.DeathLog:ShouldAlertDeath(death) then
         return
     end
+    local repeatDeath = ns.Storage:FindRecentRepeatDeath(death)
+    if repeatDeath and (not death.id or repeatDeath.id ~= death.id) then
+        return
+    end
     local playerName = Util:GetShortPlayerName(UnitName("player"))
     if playerName and Util:GetShortPlayerName(death.name) == playerName then
         return

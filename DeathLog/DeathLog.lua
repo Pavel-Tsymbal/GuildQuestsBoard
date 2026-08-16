@@ -68,9 +68,6 @@ end
 
 
 function DeathLog:GetEntries(limit)
-
-    limit = limit or C.DEATHLOG_DISPLAY_MAX
-
     local entries, totalCount = ns.Storage:GetDeathList(limit)
 
     local changed = false
@@ -121,8 +118,6 @@ function DeathLog:MergeDeath(death)
 
     death.dedupKey = death.dedupKey or ns.Storage:MakeDeathDedupKey(death)
 
-
-
     local existing = ns.Storage:FindDeathForMerge(death)
 
     if existing then
@@ -136,6 +131,10 @@ function DeathLog:MergeDeath(death)
         end
 
         death.dedupKey = existing.dedupKey or death.dedupKey
+
+    elseif ns.Storage:FindRecentRepeatDeath(death) then
+
+        return false
 
     end
 
@@ -194,9 +193,7 @@ function DeathLog:ApplyDNLIdentity(death, playerData)
     end
 
     if playerData.level and playerData.level > 0 then
-
-        death.level = playerData.level
-
+        death.level = ns.Storage:PreferDeathLevel(death.level, playerData.level)
     end
 
     if death.classId and death.raceId then
@@ -536,6 +533,12 @@ function DeathLog:RecordDeath(death)
 
 
     death.dedupKey = death.dedupKey or ns.Storage:MakeDeathDedupKey(death)
+
+    if ns.Storage:FindRecentRepeatDeath(death) then
+
+        return false
+
+    end
 
     if not death.guild then
 

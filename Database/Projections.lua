@@ -66,6 +66,9 @@ function Projections:ApplyDeathEvent(event)
     if not death then
         return false
     end
+    if ns.Storage:FindRecentRepeatDeath(death) then
+        return false
+    end
     if event.guildKey and Util:SameGuildKey(event.guildKey, Util:GetGuildKey()) then
         ns.Storage:UpsertDeath(death)
         return true
