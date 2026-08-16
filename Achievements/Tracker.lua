@@ -6,6 +6,8 @@ ns.AchievementTracker = Tracker
 Tracker.recentLevelUp = false
 Tracker.levelUpTimer = nil
 Tracker.pendingSpeedrunLevel = nil
+Tracker.pendingGuildAnnounce = nil
+Tracker.guildAnnounceTimer = nil
 
 function Tracker:Init()
     ns.GQ:RegisterEvent("QUEST_TURNED_IN", function(_, questId)
@@ -16,6 +18,9 @@ function Tracker:Init()
     end)
     ns.GQ:RegisterEvent("TIME_PLAYED_MSG", function(_, totalTimePlayed)
         self:OnTimePlayedMsg(totalTimePlayed)
+    end)
+    ns.GQ:RegisterEvent("PLAYER_REGEN_ENABLED", function()
+        self:FlushGuildAnnounce()
     end)
 end
 
@@ -87,15 +92,55 @@ function Tracker:AwardEntry(entry)
     end
 end
 
-function Tracker:AnnounceToGuild(title)
+function Tracker:SendGuildAnnounce(title)
     if not IsInGuild() or not title then
-        return
+        return false
     end
     if InCombatLockdown and InCombatLockdown() then
-        return
+        return false
     end
     local message = string.format(ns.L["ACHIEV_GUILD_ANNOUNCE"], ns.Util:GetPlayerName(), title)
-    pcall(SendChatMessage, message, "GUILD")
+    if #message > 255 then
+        message = message:sub(1, 255)
+    end
+    local ok = pcall(SendChatMessage, message, "GUILD")
+    return ok
+end
+
+function Tracker:FlushGuildAnnounce()
+    local title = self.pendingGuildAnnounce
+    if not title then
+        return
+    end
+    if self:SendGuildAnnounce(title) then
+        self.pendingGuildAnnounce = nil
+        if self.guildAnnounceTimer then
+            ns.GQ:CancelTimer(self.guildAnnounceTimer)
+            self.guildAnnounceTimer = nil
+        end
+    end
+end
+
+function Tracker:ScheduleGuildAnnounceRetry()
+    if self.guildAnnounceTimer then
+        return
+    end
+    self.guildAnnounceTimer = ns.GQ:ScheduleTimer(function()
+        Tracker.guildAnnounceTimer = nil
+        Tracker:FlushGuildAnnounce()
+    end, 1)
+end
+
+function Tracker:AnnounceToGuild(title)
+    if not title then
+        return
+    end
+    self.pendingGuildAnnounce = title
+    if self:SendGuildAnnounce(title) then
+        self.pendingGuildAnnounce = nil
+        return
+    end
+    self:ScheduleGuildAnnounceRetry()
 end
 
 function Tracker:OnQuestTurnedIn(questId)
